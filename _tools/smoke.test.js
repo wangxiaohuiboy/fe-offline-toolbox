@@ -58,6 +58,51 @@ t('英→中 短语: shopping cart', () => {
 });
 t('英→中 扩充词: apple', () => assert.ok(/苹果/.test(DKTranslate.translate('apple').text)));
 
+console.log('== 口语与礼貌用语 ==');
+t('很高兴见到你 → nice to meet you', () => {
+  const r = DKTranslate.translate('很高兴见到你');
+  assert.ok(/nice to meet you/i.test(r.text), r.text);
+  assert.strictEqual(r.coverage, 1, 'coverage=' + r.coverage);
+  console.log('    → ' + r.text);
+});
+t('很高兴认识你 → nice to meet you', () => {
+  const r = DKTranslate.translate('很高兴认识你');
+  assert.ok(/nice to meet you/i.test(r.text), r.text);
+});
+t('谢谢你 → thank you', () => {
+  const r = DKTranslate.translate('谢谢你');
+  assert.ok(/thank you/i.test(r.text), r.text);
+});
+t('不客气 → you are welcome', () => {
+  const r = DKTranslate.translate('不客气');
+  assert.ok(/you are welcome/i.test(r.text), r.text);
+});
+t('再见 → goodbye', () => {
+  const r = DKTranslate.translate('再见');
+  assert.ok(/goodbye|bye/i.test(r.text), r.text);
+});
+t('晚上好 → good evening', () => {
+  const r = DKTranslate.translate('晚上好');
+  assert.ok(/good evening/i.test(r.text), r.text);
+});
+t('常见口语不输出 greatly/delight', () => {
+  const r = DKTranslate.translate('很高兴见到你');
+  assert.ok(!/greatly|delight/i.test(r.text), r.text);
+});
+t('混合句子: 请帮我查看用户列表', () => {
+  const r = DKTranslate.translate('请帮我查看用户列表');
+  assert.ok(/please/i.test(r.text) && /user/i.test(r.text) && /list/i.test(r.text), r.text);
+  console.log('    → ' + r.text);
+});
+t('英→中: nice to meet you', () => {
+  const r = DKTranslate.translate('nice to meet you');
+  assert.ok(/很高兴/.test(r.text), r.text);
+});
+t('英→中: thank you', () => {
+  const r = DKTranslate.translate('thank you');
+  assert.ok(/谢/.test(r.text), r.text);
+});
+
 console.log('== 命名转换 ==');
 t('用户订单列表 → camelCase', () => {
   const r = DKNaming.convert('用户订单列表');

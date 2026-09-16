@@ -216,10 +216,11 @@
   }
 
   // ---- 英->中：先切成词序列，再贪婪匹配多词短语 ----
+  const MAX_EN_PHRASE = 5;   // 最多 5 词短语，如 "thanks for your hard work"
   function translateEnToZh(text) {
     const terms = [];
     const parts = [];
-    // 词元化：word | other
+    // 词元化：word | other（空格等）
     const toks = [];
     let i = 0;
     while (i < text.length) {
@@ -230,26 +231,34 @@
         i = j;
       } else { toks.push({ o: text[i] }); i++; }
     }
+    const isBlank = t => t.o !== undefined && /\s/.test(t.o);
     let p = 0;
     while (p < toks.length) {
       const t = toks[p];
       if (!t.w) { parts.push(t.o); p++; continue; }
-      // 贪婪：从 4 词短语到单词
-      let consumed = 0, hit = null, matchedSrc = null;
-      for (let n = Math.min(4, toks.length - p); n >= 2; n--) {
-        const slice = [];
-        let ok = true;
-        for (let m = 0; m < n; m++) {
-          if (!toks[p + m].w) { ok = false; break; }
-          slice.push(toks[p + m].w);
+      // 收集从 p 开始连续的词 token（中间只允许空白，标点会截断短语）
+      const run = [];
+      let q = p;
+      while (run.length < MAX_EN_PHRASE && q < toks.length) {
+        if (toks[q].w) { run.push(q); q++; }
+        else if (isBlank(toks[q])) { q++; }
+        else break;
+      }
+      // 贪婪：从最长短语到单词
+      let hit = null, matchedSrc = null, advanceTo = p + 1;
+      for (let n = run.length; n >= 2; n--) {
+        const key = run.slice(0, n).map(ix => toks[ix].w).join(' ').toLowerCase();
+        const lu = lookupEn(key);
+        if (lu) {
+          hit = lu;
+          matchedSrc = run.slice(0, n).map(ix => toks[ix].w).join(' ');
+          advanceTo = run[n - 1] + 1;   // 跳过短语及其间的空白
+          break;
         }
-        if (!ok) continue;
-        const key = slice.join(' ').toLowerCase();
-        if (lookupEn(key)) { consumed = n; hit = lookupEn(key); matchedSrc = slice.join(' '); break; }
       }
       if (!hit) {
         const stem = singularHit(t.w);
-        if (stem) { hit = lookupEn(stem); consumed = 1; matchedSrc = t.w; }
+        if (stem) { hit = lookupEn(stem); matchedSrc = t.w; }
       }
       if (hit) {
         terms.push({ zh: hit, en: matchedSrc });
@@ -258,7 +267,7 @@
         terms.push({ zh: t.w, en: t.w + '（无匹配）' });
         parts.push(t.w);
       }
-      p += consumed || 1;
+      p = advanceTo;
     }
     // 中文词之间的空格去掉，英文与中文间保留
     const outText = parts.join('').replace(/(?<=[\u3400-\u4dbf\u4e00-\u9fff])\s+(?=[\u3400-\u4dbf\u4e00-\u9fff])/g, '');

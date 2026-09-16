@@ -8,7 +8,7 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 
 | Tool | Description |
 |------|-------------|
-| **Translate** | 17,000+ offline Chinese-English entries (1,100+ hand-curated frontend/IT terms + extended dictionary based on [ECDICT](https://github.com/skywind3000/ECDICT)); bidirectional; unmatched words are **kept as Chinese with a hit-rate hint** (no pinyin output); optional intranet translation API support |
+| **Translate** | 17,000+ offline Chinese-English entries (1,250+ hand-curated frontend/IT terms + extended dictionary based on [ECDICT](https://github.com/skywind3000/ECDICT)); bidirectional; whole-phrase entries for daily greetings/polite expressions (e.g. 很高兴见到你 → "nice to meet you"); unmatched words are **kept as Chinese with a hit-rate hint** (no pinyin output); optional intranet translation API support |
 | **Selection Translate** | Select text on any webpage → click the floating "译" button → offline dictionary card |
 | **Chinese → Variable Names** | Chinese phrases → camelCase / PascalCase / snake_case / kebab-case / CONSTANT, plus engineering suggestions (Vue/React component names, `is/on/get/set` prefixes, status/list/fetch patterns); batch mode; pinyin fallback (all 6,763 GB2312 characters included) |
 | **JSON Tools** | Format (with line/column error location), minify, key sorting, escaping, JSON→TypeScript interfaces, JSON→YAML, JSONPath extraction, syntax highlighting |
