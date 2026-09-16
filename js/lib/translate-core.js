@@ -6,10 +6,11 @@
   const DICT = new Map();     // zh -> [en...]
   const REDGE = new Map();    // en(word/phrase) -> zh
   const REDGE_PRI = new Map();// en -> 命中的英文在词条里的位次（越小越权威）
+  const REDGE_LOCK = new Set(); // 精编词典已注册的英文词：扩充词典不得覆盖（防止机翻噪声抢注，如 加下标次序=is）
   let PHRASES = [];           // 多词英文短语（用于 en->zh 贪婪匹配）
   let MAX_ZH_LEN = 1;
 
-  function addEntry(zh, ens) {
+  function addEntry(zh, ens, hard) {
     zh = zh.trim();
     if (!zh) return;
     const list = ens.split(',').map(s => s.trim()).filter(Boolean);
@@ -18,15 +19,19 @@
     list.forEach((en, i) => {
       if (en === '~') return;                 // ~ 表示结构词，翻译时省略
       const k = en.toLowerCase();
-      // 反查优先级：只让「位次更靠前」的候选覆盖，先加载的精编词典因此优先
-      const pri = REDGE_PRI.has(k) ? REDGE_PRI.get(k) : 99;
-      if (!REDGE.has(k) || i < pri) { REDGE.set(k, zh); REDGE_PRI.set(k, i); }
+      if (hard) {                             // 精编词典：绝对优先（锁定，扩充词典不得覆盖），内部按位次先到先得
+        const pri0 = REDGE_PRI.has(k) ? REDGE_PRI.get(k) : 99;
+        if (!REDGE_LOCK.has(k) || i < pri0) { REDGE.set(k, zh); REDGE_PRI.set(k, i); REDGE_LOCK.add(k); }
+      } else if (!REDGE_LOCK.has(k)) {        // 扩充词典：位次更靠前才覆盖（同一批内）
+        const pri = REDGE_PRI.has(k) ? REDGE_PRI.get(k) : 99;
+        if (!REDGE.has(k) || i < pri) { REDGE.set(k, zh); REDGE_PRI.set(k, i); }
+      }
       if (/\s/.test(k) && !PHRASES.includes(k)) PHRASES.push(k);
     });
     if (zh.length > MAX_ZH_LEN) MAX_ZH_LEN = zh.length;
   }
 
-  function parseRaw(raw) {
+  function parseRaw(raw, hard) {
     if (!raw) return 0;
     let n = 0;
     raw.split(/\n+/).forEach(line => {
@@ -34,21 +39,21 @@
       if (!line || line.startsWith('#')) return;
       const i = line.indexOf('=');
       if (i < 1) return;
-      addEntry(line.slice(0, i), line.slice(i + 1));
+      addEntry(line.slice(0, i), line.slice(i + 1), hard);
       n++;
     });
     return n;
   }
 
-  // ---- 加载词典：团队精编词典优先，扩充词典兜底（先入为主，不被覆盖）----
+  // ---- 加载词典：团队精编词典优先（并锁定反查），扩充词典兜底 ----
   let bigLoaded = false;
-  function loadBuiltin() { parseRaw((typeof window !== 'undefined' && window.DK_DICT_RAW) || ''); }
+  function loadBuiltin() { parseRaw((typeof window !== 'undefined' && window.DK_DICT_RAW) || '', true); }
   function loadBig() {
     if (bigLoaded) return 0;
     const raw = (typeof window !== 'undefined' && window.DK_DICT_BIG) || '';
     if (!raw) return 0;
     bigLoaded = true;
-    return parseRaw(raw);
+    return parseRaw(raw, false);
   }
   const builtinCount = (function () { loadBuiltin(); return DICT.size; })();
   loadBig();
@@ -217,6 +222,7 @@
 
   // ---- 英->中：先切成词序列，再贪婪匹配多词短语 ----
   const MAX_EN_PHRASE = 5;   // 最多 5 词短语，如 "thanks for your hard work"
+  const EN_STOP = new Set(['the', 'a', 'an', 'to', 'of']);  // 冠词/不定式 to/所属 of：单词直译时省略（短语匹配不受影响）
   function translateEnToZh(text) {
     const terms = [];
     const parts = [];
@@ -257,6 +263,8 @@
         }
       }
       if (!hit) {
+        const wl = t.w.toLowerCase();
+        if (EN_STOP.has(wl)) { p++; continue; }   // 冠词/不定式 to：省略不译
         const stem = singularHit(t.w);
         if (stem) { hit = lookupEn(stem); matchedSrc = t.w; }
       }
@@ -269,8 +277,10 @@
       }
       p = advanceTo;
     }
-    // 中文词之间的空格去掉，英文与中文间保留
-    const outText = parts.join('').replace(/(?<=[\u3400-\u4dbf\u4e00-\u9fff])\s+(?=[\u3400-\u4dbf\u4e00-\u9fff])/g, '');
+    // 中文词之间的空格去掉，英文与中文间保留；句首句尾去空白
+    const outText = parts.join('')
+      .replace(/(?<=[\u3400-\u4dbf\u4e00-\u9fff])\s+(?=[\u3400-\u4dbf\u4e00-\u9fff])/g, '')
+      .replace(/\s{2,}/g, ' ').trim();
     return { text: outText, terms };
   }
 

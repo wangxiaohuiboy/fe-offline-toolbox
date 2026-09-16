@@ -103,6 +103,31 @@ t('英→中: thank you', () => {
   assert.ok(/谢/.test(r.text), r.text);
 });
 
+console.log('== 大词典扩容回归 ==');
+t('扩充词典 > 7 万条', () => assert.ok(DKTranslate.dictSize() > 70000, '实际: ' + DKTranslate.dictSize()));
+t('很高兴遇到你 → very glad meet', () => {
+  const r = DKTranslate.translate('很高兴遇到你');
+  assert.ok(/very glad/i.test(r.text) && /meet/i.test(r.text), r.text);
+  console.log('    → ' + r.text);
+});
+t('我想学习前端开发 → frontend', () => {
+  const r = DKTranslate.translate('我想学习前端开发');
+  assert.ok(/frontend/i.test(r.text) && !/fringe/i.test(r.text), r.text);
+  console.log('    → ' + r.text);
+});
+t('项目进度 → project progress（不被 item 抢占）', () => {
+  const r = DKTranslate.translate('项目进度');
+  assert.ok(/project/i.test(r.text) && /progress/i.test(r.text), r.text);
+});
+t('英→中: this is a user list', () => {
+  const r = DKTranslate.translate('this is a user list');
+  assert.ok(/这个是用户列表/.test(r.text), r.text);
+});
+t('英→中: the project progress is slow', () => {
+  const r = DKTranslate.translate('the project progress is slow');
+  assert.ok(/项目进度/.test(r.text) && /慢/.test(r.text) && !/加下标/.test(r.text), r.text);
+});
+
 console.log('== 命名转换 ==');
 t('用户订单列表 → camelCase', () => {
   const r = DKNaming.convert('用户订单列表');

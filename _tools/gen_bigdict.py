@@ -14,10 +14,11 @@ import csv, re, os, sys
 SRC = '/tmp/ecdict.csv'
 OUT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'js', 'lib', 'dict.big.js'))
 MAX_LINES = int(sys.argv[1]) if len(sys.argv) > 1 else 25000
+RANK_MAX = int(sys.argv[2]) if len(sys.argv) > 2 else 25000   # 英文词词频排名上限（越小越常用）
 MAX_EN_PER_ZH = 3
 POS_WEIGHT = 2000      # 选词打分：每往后一个义项，等价于词频排名 +2000
 MAX_SENSE_IDX = 6      # 只看前 7 个义项，后面的多为专业/冷门义
-MIN_WORDS_OR_GOOD = 6000   # 只出现 1 次的中文词，要求其英文词足够常用且义项靠前
+MIN_WORDS_OR_GOOD = 60000  # 单英文词条目：义项靠前(前2义)或词频排名足够好才保留
 
 POS = r'^(?:n|v|vt|vi|adj|adv|prep|conj|pron|num|art|int|interj|aux|abbr|pl|ad|a|s|r|t|u|c|det|part|modal)\.\s*'
 LABEL = re.compile(r'\[[^\]]{0,12}\]')
@@ -60,7 +61,7 @@ def main():
             tags = set((row.get('tag') or '').split())
             ranks = [int(x) for x in (row.get('frq') or '0', row.get('bnc') or '0') if x and x.isdigit() and int(x) > 0]
             rank = min(ranks) if ranks else 0
-            if not tags & GOOD_TAGS and not (rank and rank <= 25000):
+            if not tags & GOOD_TAGS and not (rank and rank <= RANK_MAX):
                 continue
             if not rank:
                 rank = 30000
