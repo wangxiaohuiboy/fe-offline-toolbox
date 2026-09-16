@@ -2,7 +2,7 @@
 
 [中文文档](./README.md)
 
-A Chrome extension built for **intranet / offline environments**, providing 15 high-frequency productivity tools for frontend developers. **Zero external dependencies**: dictionary, pinyin table, algorithms and UI are all bundled locally — works perfectly with no internet, and never sends data to any external address.
+A Chrome extension built for **intranet / offline environments**, providing 17 high-frequency productivity tools for frontend developers. **Zero external dependencies**: dictionary, pinyin table, algorithms and UI are all bundled locally — works perfectly with no internet, and never sends data to any external address.
 
 ## ✨ Features
 
@@ -12,12 +12,14 @@ A Chrome extension built for **intranet / offline environments**, providing 15 h
 | **Selection Translate** | Select text on any webpage → click the floating "译" button → offline dictionary card |
 | **Chinese → Variable Names** | Chinese phrases → camelCase / PascalCase / snake_case / kebab-case / CONSTANT, plus engineering suggestions (Vue/React component names, `is/on/get/set` prefixes, status/list/fetch patterns); batch mode; pinyin fallback (all 6,763 GB2312 characters included) |
 | **JSON Tools** | Format (with line/column error location), minify, key sorting, escaping, JSON→TypeScript interfaces, JSON→YAML, JSONPath extraction, syntax highlighting |
+| **API Debugger** | Send requests to intranet APIs (GET/POST/PUT/PATCH/DELETE), custom headers/body, response time/size/headers display, last 8 history entries with one-click refill; CORS permission granted on demand |
 | **Encode/Decode** | Base64 (UTF-8 safe), URL, HTML entities, Unicode, JWT parsing (with expiry check), MD5/SHA1/SHA256/SHA512, radix conversion |
 | **Timestamp** | Live timestamp, auto-detect seconds/milliseconds, ISO/UTC formats, relative time |
 | **URL Tools** | URL parsing (protocol/host/path/hash), decoded parameter table, params→JSON, query builder |
 | **Image Tools** | Image to Base64 (drag & drop), local compression (width/quality/format: PNG/JPEG/WebP), preview & copy |
 | **px·rem·vw** | Mobile unit conversion (configurable root font-size & viewport width), common size lookup table, click-to-copy |
 | **Regex Tester** | Live match highlighting, capture groups, replace preview, 14 common patterns library |
+| **Table Converter** | CSV / TSV (paste directly from Excel) / Markdown tables / JSON arrays — convert between all formats for docs and data export |
 | **Text Tools** | Case/naming-style conversion, sort & dedupe, line prefixes/suffixes, full/half-width conversion, statistics, line diff |
 | **Color Tools** | HEX/RGB/HSL conversion, 10-step color scale, color picker |
 | **Random** | UUID v4, NanoID, random passwords, Chinese placeholder text |
@@ -67,7 +69,7 @@ fe-offline-kit/
 ├── js/
 │   ├── app.js             # Controller / routing / search
 │   ├── lib/               # Dictionary data, translate engine, naming, utils
-│   ├── modules/           # 15 tool modules (one file per tool)
+│   ├── modules/           # 17 tool modules (one file per tool)
 └── _tools/                # Dev scripts (dictionary/icon generation, smoke tests)
 ```
 

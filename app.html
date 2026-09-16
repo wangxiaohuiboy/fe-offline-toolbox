@@ -19,6 +19,10 @@
       <nav id="nav"></nav>
       <div id="side-foot">
         <button id="open-tab" class="side-btn" title="在浏览器标签页中打开完整版">⤢ 全屏模式</button>
+        <div id="contact">
+          <span class="contact-name">王耀辉</span>
+          <a class="contact-mail" href="mailto:wangxiaohuiya@gmail.com" title="发送邮件">wangxiaohuiya@gmail.com</a>
+        </div>
       </div>
     </aside>
     <main id="main">
@@ -29,6 +33,7 @@
       <div id="tool-body"></div>
     </main>
   </div>
+  <!-- 脚本按前端开发使用频率排序：高频在前 -->
   <script src="js/lib/core.js"></script>
   <script src="js/lib/pinyin.data.js"></script>
   <script src="js/lib/dict.data.js"></script>
@@ -36,16 +41,22 @@
   <script src="js/lib/translate-core.js"></script>
   <script src="js/lib/naming.js"></script>
   <script src="js/lib/md5.js"></script>
+  <!-- 1. 高频：翻译 / JSON / 接口调试 -->
   <script src="js/modules/translate.js"></script>
-  <script src="js/modules/naming.js"></script>
   <script src="js/modules/json.js"></script>
+  <script src="js/modules/api.js"></script>
+  <!-- 2. 常用：命名 / 编解码 / 时间 / 正则 -->
+  <script src="js/modules/naming.js"></script>
   <script src="js/modules/encode.js"></script>
   <script src="js/modules/time.js"></script>
+  <script src="js/modules/regex.js"></script>
+  <!-- 3. 进阶：URL / 表格转换 / 文本 / 图片 / 单位 -->
   <script src="js/modules/url.js"></script>
+  <script src="js/modules/convert.js"></script>
+  <script src="js/modules/text.js"></script>
   <script src="js/modules/image.js"></script>
   <script src="js/modules/unit.js"></script>
-  <script src="js/modules/regex.js"></script>
-  <script src="js/modules/text.js"></script>
+  <!-- 4. 低频：颜色 / 随机 / Cron / 速查 / 设置 -->
   <script src="js/modules/color.js"></script>
   <script src="js/modules/random.js"></script>
   <script src="js/modules/cron.js"></script>

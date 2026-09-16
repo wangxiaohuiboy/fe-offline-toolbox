@@ -269,6 +269,43 @@ body.popup .name-grid { grid-template-columns: 1fr; }
 .dk-toast.show { opacity: 1; transform: none; }
 .dk-toast.err { background: rgba(200, 40, 40, .95); }
 
+/* ===== 接口调试工具 ===== */
+.stat { margin: 8px 0; font-size: 12px; color: var(--text2); line-height: 1.7; }
+.s-ok { color: var(--ok); font-family: var(--mono); }
+.s-err { color: var(--err); font-family: var(--mono); }
+.hist-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px; margin: 3px 0;
+  border: 1px solid var(--border); border-radius: 7px;
+  cursor: pointer; background: var(--panel);
+  transition: border-color .15s, background .15s;
+}
+.hist-item:hover { border-color: var(--accent); background: #f6f7fd; }
+.hist-m { font-size: 10px; font-weight: 700; width: 44px; flex-shrink: 0; letter-spacing: .5px; }
+.hist-u { flex: 1; min-width: 0; font-family: var(--mono); font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-ms { font-size: 11px; color: var(--text3); flex-shrink: 0; font-family: var(--mono); }
+
+/* ===== 底部联系人 ===== */
+#contact {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.5;
+}
+.contact-name { font-size: 11.5px; color: var(--text2); }
+.contact-mail {
+  font-size: 10.5px;
+  color: var(--text3);
+  font-family: var(--mono);
+  text-decoration: none;
+  word-break: break-all;
+  transition: color .15s;
+}
+.contact-mail:hover { color: var(--accent); text-decoration: underline; }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #d3d7e0; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #b9bfcc; }
