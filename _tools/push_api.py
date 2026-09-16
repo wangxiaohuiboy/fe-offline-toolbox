@@ -152,8 +152,12 @@ def main():
         if got is not None:
             continue
         content = run(['git', 'cat-file', 'blob', sha], binary=True)
-        api_call('POST', '/repos/%s/git/blobs' % owner_repo,
-                 {'content': base64.b64encode(content).decode('ascii'), 'encoding': 'base64'})
+        try:
+            api_call('POST', '/repos/%s/git/blobs' % owner_repo,
+                     {'content': base64.b64encode(content).decode('ascii'), 'encoding': 'base64'})
+        except RuntimeError as e:
+            print('!! blob 上传失败: %s (%d bytes)\n%s' % (path, len(content), str(e)[:400]))
+            raise
         created += 1
     print('补传 blob: %d 个（其余远端已存在）' % created)
 

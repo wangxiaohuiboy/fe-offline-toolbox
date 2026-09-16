@@ -8,7 +8,7 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 
 | Tool | Description |
 |------|-------------|
-| **Translate** | 77,000+ offline Chinese-English entries (1,270+ hand-curated frontend/IT terms + 76,000 extended entries generated from the open-source [ECDICT](https://github.com/skywind3000/ECDICT) pack); bidirectional; whole-phrase entries for daily greetings/polite expressions (e.g. 很高兴见到你 → "nice to meet you"); unmatched words are **kept as Chinese with a hit-rate hint** (no pinyin output); optional intranet translation API support |
+| **Translate** | Dual-engine, fully offline: **① Dictionary lookup** — 77,000 Chinese-English entries (1,270+ hand-curated + extended dictionary from [ECDICT](https://github.com/skywind3000/ECDICT)), accurate terms, instant; **② Neural translation** — built-in local AI model opus-mt-zh-en ([Transformers.js](https://github.com/huggingface/transformers.js) + WASM, ~110MB), natural full-sentence output; first load takes 10-30s. Bidirectional; optional intranet translation API support |
 | **Selection Translate** | Select text on any webpage → click the floating "译" button → offline dictionary card |
 | **Chinese → Variable Names** | Chinese phrases → camelCase / PascalCase / snake_case / kebab-case / CONSTANT, plus engineering suggestions (Vue/React component names, `is/on/get/set` prefixes, status/list/fetch patterns); batch mode; pinyin fallback (all 6,763 GB2312 characters included) |
 | **JSON Tools** | Format (with line/column error location), minify, key sorting, escaping, JSON→TypeScript interfaces, JSON→YAML, JSONPath extraction, syntax highlighting |
@@ -40,16 +40,15 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 
 ## 🌐 About Offline Translation
 
-Offline translation is **dictionary-based word-by-word translation**:
+The Translate tool ships with **two offline engines**:
 
-- Unmatched words stay in Chinese, with a hit-rate hint; you can opt into pinyin substitution
-- Structural particles (的/了/把/时…) are automatically omitted for readability
-- Example: `用户支付订单后自动发送短信通知` → `user pay order auto send sms notification`
+- **Dictionary mode** (default): word-by-word lookup against local dictionaries — accurate terms, instant response. Structural particles (的/了/把…) are automatically omitted. Maintain business terms in Settings → Custom Dictionary; instantly affects both translation and naming
+- **Neural mode**: a local AI model (opus-mt-zh-en, Marian NMT) runs entirely in your browser via [Transformers.js](https://github.com/huggingface/transformers.js) + WebAssembly — real full-sentence translation with natural grammar. The model files (~110MB) ship with the zip distribution and never touch the network. First load takes 10-30s; per-sentence inference ~2-10s
+  - Example: `仓库的代码已经超过一万行了，需要安排一次代码评审。` → *The warehouse code has exceeded 10,000 lines and requires a code review.*
+  - When cloning from GitHub, model weights are excluded (size); run `bash _tools/download_models.sh` to fetch them (defaults to the hf-mirror.com mirror for China)
+- **Intranet translation API**: if your company runs a translation service, configure the endpoint (GET/POST, param name, response path, headers) in Settings
 
-Enhancements:
-
-1. **Team dictionary**: maintain business terms in Settings → Custom Dictionary (e.g. `结算中心=settlement center`); instantly affects both translation and naming; import/export for team-wide sharing
-2. **Intranet translation API**: if your company runs a translation service, configure the endpoint (GET/POST, param name, response path, headers) in Settings
+Dictionary-mode example: `用户支付订单后自动发送短信通知` → `user pay order auto send sms notification`
 
 ## 🔒 Privacy
 
