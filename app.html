@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>前端离线工具箱</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="side">
+      <div id="brand">
+        <img src="icons/icon32.png" alt="" />
+        <b>前端离线工具箱</b>
+      </div>
+      <div id="search-box">
+        <input id="search" type="text" placeholder="搜索工具…" />
+      </div>
+      <nav id="nav"></nav>
+      <div id="side-foot">
+        <button id="open-tab" class="side-btn" title="在浏览器标签页中打开完整版">⤢ 全屏模式</button>
+      </div>
+    </aside>
+    <main id="main">
+      <header id="tool-head">
+        <h1 id="tool-name"></h1>
+        <span id="tool-desc"></span>
+      </header>
+      <div id="tool-body"></div>
+    </main>
+  </div>
+  <script src="js/lib/core.js"></script>
+  <script src="js/lib/pinyin.data.js"></script>
+  <script src="js/lib/dict.data.js"></script>
+  <script src="js/lib/dict.big.js"></script>
+  <script src="js/lib/translate-core.js"></script>
+  <script src="js/lib/naming.js"></script>
+  <script src="js/lib/md5.js"></script>
+  <script src="js/modules/translate.js"></script>
+  <script src="js/modules/naming.js"></script>
+  <script src="js/modules/json.js"></script>
+  <script src="js/modules/encode.js"></script>
+  <script src="js/modules/time.js"></script>
+  <script src="js/modules/url.js"></script>
+  <script src="js/modules/image.js"></script>
+  <script src="js/modules/unit.js"></script>
+  <script src="js/modules/regex.js"></script>
+  <script src="js/modules/text.js"></script>
+  <script src="js/modules/color.js"></script>
+  <script src="js/modules/random.js"></script>
+  <script src="js/modules/cron.js"></script>
+  <script src="js/modules/cheat.js"></script>
+  <script src="js/modules/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
