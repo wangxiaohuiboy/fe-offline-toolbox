@@ -73,7 +73,7 @@ DK.registerTool({
 
     // ---- 内网接口翻译 ----
     async function apiTranslate() {
-      const cfg = await DK.store.get('dkApi', null);
+      const cfg = window.DKSessionApi || await DK.store.get('dkApi', null);
       if (!cfg || !cfg.url) { DK.toast('请先在「设置」中配置内网翻译接口', 'err'); return; }
       const text = input.value.trim();
       if (!text) return;
@@ -109,40 +109,74 @@ DK.registerTool({
     }
 
     // ---- 神经翻译（本地 WASM 模型，Transformers.js + opus-mt-zh-en，完全离线）----
+    // 优先走 Offscreen Document 常驻加载（避免面板弹窗关闭中断）；不可用时降级到本页面加载。
     let neuralPipe = null;
     let neuralLoading = false;
+
+    // 本页面加载（降级路径）
     async function getNeuralPipe(onStatus) {
       if (neuralPipe) return neuralPipe;
       if (neuralLoading) throw new Error('模型加载中，请稍候…');
       neuralLoading = true;
       try {
-        const isExt = location.protocol === 'chrome-extension:';
-        // 注意：v4 的本地存在性检查会拒绝 http(s) 开头的 localModelPath（防盗链设计），
-        // 因此网页环境用相对路径、扩展环境用 chrome-extension:// 绝对路径
-        const modelBase = isExt ? chrome.runtime.getURL('models/') : 'models/';
-        const ortBase = isExt ? chrome.runtime.getURL('js/lib/ort/') : new URL('js/lib/ort/', location.href).href;
-        // 动态 import 的相对路径以「当前模块文件」为基准，必须转成绝对 URL
-        const tfUrl = isExt ? chrome.runtime.getURL('js/lib/transformers/transformers.min.js')
-                            : new URL('js/lib/transformers/transformers.min.js', location.href).href;
-        const mod = await import(tfUrl);
-        mod.env.allowLocalModels = true;
-        mod.env.allowRemoteModels = false;
-        mod.env.localModelPath = modelBase;
-        mod.env.backends.onnx.wasm.wasmPaths = ortBase;
-        mod.env.backends.onnx.wasm.numThreads = 1;   // 扩展页无 SharedArrayBuffer，用单线程
-        onStatus('模型加载中…（首次约 10-30 秒）');
-        neuralPipe = await mod.pipeline('translation', 'opus-mt-zh-en', {
-          dtype: 'q8', device: 'wasm',
-          progress_callback: p => {
-            if (p && p.status === 'progress' && p.total) {
-              onStatus('加载模型… ' + Math.round(p.loaded / p.total * 100) + '%（' + p.file.split('/').pop() + '）');
-            } else if (p && p.status) {
-              onStatus('模型加载：' + p.status);
-            }
-          }
-        });
+        neuralPipe = await window.DKNeural.getPipeline(onStatus);
         return neuralPipe;
       } finally { neuralLoading = false; }
+    }
+
+    // 后台 Offscreen 翻译：返回 Promise，进度通过消息回传
+    function neuralOffscreen(text, onStatus) {
+      return new Promise((resolve, reject) => {
+        const reqId = 'n' + Date.now() + Math.random().toString(36).slice(2, 7);
+        let done = false;
+        let timer = null;
+        const cleanup = () => {
+          chrome.runtime.onMessage.removeListener(onMsg);
+          chrome.runtime.onMessage.removeListener(onProg);
+          if (timer) clearTimeout(timer);
+        };
+        const onMsg = msg => {
+          if (!msg || msg.type !== 'DK_NEURAL_DONE' || msg.reqId !== reqId) return;
+          done = true; cleanup();
+          if (msg.error) reject(new Error(msg.error)); else resolve(msg.text);
+        };
+        const onProg = msg => {
+          if (!msg || msg.type !== 'DK_NEURAL_PROGRESS' || msg.reqId !== reqId) return;
+          onStatus && onStatus(msg.status);
+        };
+        chrome.runtime.onMessage.addListener(onMsg);
+        chrome.runtime.onMessage.addListener(onProg);
+        timer = setTimeout(() => { if (!done) { cleanup(); reject(new Error('后台神经翻译超时')); } }, 180000);
+        chrome.runtime.sendMessage({ type: 'DK_ENSURE_OFFSCREEN' }, resp => {
+          if (!resp || !resp.ok) { cleanup(); reject(new Error('OFFSCREEN_UNAVAILABLE')); return; }
+          chrome.runtime.sendMessage({ type: 'DK_NEURAL', text, reqId }).catch(e => { cleanup(); reject(e); });
+        });
+      });
+    }
+
+    // 缺失模型/库时的可发现引导（H1）
+    function showMissingAssets(missing) {
+      const list = (missing || []).map(f => '<code>' + DK.esc(f) + '</code>').join('、');
+      noteBox.innerHTML = '';
+      noteBox.appendChild(h('div', { class: 'tip warn', html:
+        '<b>神经翻译模型/库未就绪</b>（默认不进 git，需先下载）：' + list +
+        '<br>请在项目根目录运行 <code>bash _tools/download_models.sh</code> 下载模型与运行库，' +
+        '然后回到本插件页面重新点击「神经翻译」。<br>' +
+        '（词典翻译不受影响，可继续正常使用。）' }));
+      DK.toast('神经翻译模型未下载', 'err');
+    }
+
+    function isMissingAssetsErr(e) {
+      return e && (e.code === 'MISSING_ASSETS' || (e.message && e.message.indexOf('MISSING_ASSETS') === 0));
+    }
+    function missingFromErr(e) {
+      const m = e && e.missing;
+      if (Array.isArray(m)) return m;
+      if (e && e.message) {
+        const i = e.message.indexOf('MISSING_ASSETS:');
+        if (i === 0) return e.message.slice('MISSING_ASSETS:'.length).split(',');
+      }
+      return [];
     }
 
     async function neuralTranslate() {
@@ -154,26 +188,42 @@ DK.registerTool({
       }
       const btn = neuralBtn;
       btn.disabled = true;
+      btn.textContent = '加载中…';
+      neuralStatus.textContent = '';
+      const setStatus = s => { neuralStatus.textContent = s; };
       try {
-        const pipe = await getNeuralPipe(s => { btn.textContent = s.slice(0, 22); });
-        btn.textContent = '翻译中…';
-        const t0 = performance.now();
-        const result = await pipe(text, { max_new_tokens: 256 });
-        const ms = Math.round(performance.now() - t0);
-        const en = (result && result[0] && result[0].translation_text) || '（无输出）';
+        let en;
+        try {
+          en = await neuralOffscreen(text, setStatus);   // 优先后台常驻
+      } catch (e) {
+        // 后台不可用或超时：降级到本页面加载（保证可用性，不硬失败）
+        if (e && (e.message === 'OFFSCREEN_UNAVAILABLE' || /超时/.test(e.message))) {
+            setStatus('后台不可用，改用本页面加载…');
+            const pipe = await getNeuralPipe(setStatus);  // 降级到本页面
+            setStatus('翻译中…');
+            const t0 = performance.now();
+            const result = await pipe(text, { max_new_tokens: 256 });
+            const ms = Math.round(performance.now() - t0);
+            en = (result && result[0] && result[0].translation_text) || '（无输出）';
+            setStatus('本地神经模型 opus-mt-zh-en（' + ms + ' ms），完全离线');
+          } else {
+            throw e;
+          }
+        }
         out.pre.textContent = en;
         dirLabel.textContent = '中 → 英 · 神经整句';
         lastResult = { dir: 'zh2en', text: en };
         noteBox.innerHTML = '';
         noteBox.appendChild(h('div', { class: 'tip', html:
-          '本地神经模型 opus-mt-zh-en（' + ms + ' ms），完全离线，不出浏览器。' }));
+          '本地神经模型 opus-mt-zh-en，完全离线，不出浏览器。' }));
         termsBox.innerHTML = '';
       } catch (e) {
-        DK.toast('神经翻译失败：' + e.message, 'err');
+        if (isMissingAssetsErr(e)) showMissingAssets(missingFromErr(e));
+        else DK.toast('神经翻译失败：' + (e && e.message), 'err');
       } finally { btn.textContent = '神经翻译'; btn.disabled = false; }
     }
 
-    let apiBtn, neuralBtn;
+    let apiBtn, neuralBtn, neuralStatus;
     const row1 = h('div', { class: 'row' }, [
       h('button', { class: 'btn primary', text: '翻译', onclick: render }),
       h('button', { class: 'btn', text: '中→英', onclick: e => { forceDir = 'zh2en'; render(); } }),
@@ -203,6 +253,7 @@ DK.registerTool({
       } }),
       apiBtn = h('button', { class: 'btn', text: '接口翻译', title: '使用设置中配置的内网翻译接口', onclick: apiTranslate }),
       neuralBtn = h('button', { class: 'btn', text: '神经翻译', title: '本地 AI 模型整句翻译（中→英，完全离线，首次加载较慢）', onclick: neuralTranslate }),
+      neuralStatus = h('span', { class: 'muted', style: { marginLeft: '8px', alignSelf: 'center', fontSize: '12px' } }),
       h('label', { class: 'chk-label', title: '未收录的词用拼音代替（变量命名场景更实用）' }, [pinyinChk, '未收录字用拼音'])
     ]);
 

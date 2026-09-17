@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "前端离线工具箱",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "内网可用的前端工具箱：离线翻译（词典 + 本地神经整句翻译）、JSON、接口调试、命名转换、编解码等。作者：王耀辉 wangxiaohuiya@gmail.com",
   "author": "王耀辉 <wangxiaohuiya@gmail.com>",
   "homepage_url": "https://github.com/wangxiaohuiboy/fe-offline-toolbox",
@@ -23,7 +23,7 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab", "scripting"],
+  "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab", "scripting", "offscreen"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },

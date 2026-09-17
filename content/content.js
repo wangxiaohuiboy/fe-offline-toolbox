@@ -21,7 +21,8 @@
     })();
     return dataReady;
   }
-  ensureData();
+  // 注：不在此处 eager 加载大词典——改为用户首次划词/右键翻译时才按需加载（见 CODE_REVIEW M2），
+  // 避免每个网页都常驻 1.7MB 词典占用内存。
 
   function loadCfg() {
     try {

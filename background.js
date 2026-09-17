@@ -3,6 +3,27 @@
 const PANEL_URL = chrome.runtime.getURL('app.html');
 const PANEL_W = 920;
 const PANEL_H = 680;
+const OFFSCREEN_URL = chrome.runtime.getURL('offscreen/translate.html');
+
+/* ---------- Offscreen Document：常驻加载神经翻译模型（避免面板关闭中断）---------- */
+async function ensureOffscreen() {
+  try {
+    if (chrome.offscreen && await chrome.offscreen.hasDocument({ url: OFFSCREEN_URL })) return true;
+  } catch (e) { /* 旧版无 offscreen API */ }
+  try {
+    if (chrome.offscreen && chrome.offscreen.createDocument) {
+      await chrome.offscreen.createDocument({
+        url: OFFSCREEN_URL,
+        reasons: ['BLOBS'],
+        justification: '本地神经翻译模型需在扩展页面常驻加载，避免面板弹窗关闭导致加载/推理中断'
+      });
+      // 等待 offscreen 文档脚本注册消息监听，避免首条请求竞态丢失
+      await new Promise(r => setTimeout(r, 350));
+      return true;
+    }
+  } catch (e) { /* 创建失败则降级到面板内加载 */ }
+  return false;
+}
 
 /* ---------- 面板窗口：点击扩展图标时打开（已开则聚焦） ---------- */
 async function openPanel() {
@@ -103,5 +124,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return false;
   if (msg.type === 'DK_OPEN_TAB') { openInTab(); sendResponse({ ok: true }); }
   if (msg.type === 'DK_OPEN_PANEL') { openPanel(); sendResponse({ ok: true }); }
+  if (msg.type === 'DK_ENSURE_OFFSCREEN') {
+    ensureOffscreen().then(ok => sendResponse({ ok })).catch(() => sendResponse({ ok: false }));
+    return true; // 异步 sendResponse
+  }
   return false;
 });

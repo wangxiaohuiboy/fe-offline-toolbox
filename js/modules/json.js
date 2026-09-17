@@ -103,7 +103,7 @@
         genInterface(x, iName);
         return iName;
       }
-      if (typeof x === 'number') return Number.isInteger(x) ? 'number' : 'number';
+      if (typeof x === 'number') return 'number';
       return typeof x;
     }
 

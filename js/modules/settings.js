@@ -64,26 +64,44 @@ DK.registerTool({
     const apiHeaders = h('input', { class: 'ti', style: { fontFamily: 'var(--mono)' }, placeholder: '额外请求头 JSON，如：{"Authorization":"Bearer xxx"}' });
 
     DK.store.get('dkApi', null).then(cfg => {
+      if (!cfg && window.DKSessionApi) cfg = window.DKSessionApi;  // 优先回填本次会话配置
       if (!cfg) return;
       apiUrl.value = cfg.url || '';
       apiMethod.value = cfg.method || 'GET';
       apiParam.value = cfg.qParam || 'q';
       apiPath.value = cfg.respPath || 'data';
       apiHeaders.value = cfg.headers ? JSON.stringify(cfg.headers) : '';
+      rememberChk.checked = !window.DKSessionApi;
     });
 
+    // 记住配置：默认勾选（持久化到本地存储）；取消勾选则仅本次会话使用（重启插件失效），避免含 token 的密钥长期明文落盘
+    const rememberChk = h('input', { type: 'checkbox', checked: true });
+
     const saveApi = async () => {
-      if (!apiUrl.value.trim()) { await DK.store.set('dkApi', null); DK.toast('已清除接口配置'); return; }
+      if (!apiUrl.value.trim()) {
+        await DK.store.set('dkApi', null);
+        window.DKSessionApi = null;
+        DK.toast('已清除接口配置'); return;
+      }
       let headers = {};
       if (apiHeaders.value.trim()) {
         try { headers = JSON.parse(apiHeaders.value); }
         catch (e) { DK.toast('请求头不是合法 JSON', 'err'); return; }
       }
-      await DK.store.set('dkApi', {
+      const cfg = {
         url: apiUrl.value.trim(), method: apiMethod.value,
         qParam: apiParam.value.trim() || 'q', respPath: apiPath.value.trim() || 'data', headers
-      });
-      DK.toast('接口配置已保存');
+      };
+      if (rememberChk.checked) {
+        window.DKSessionApi = null;
+        await DK.store.set('dkApi', cfg);
+        DK.toast('接口配置已保存');
+      } else {
+        // 本次会话：仅在内存中，不写本地存储
+        window.DKSessionApi = cfg;
+        await DK.store.set('dkApi', null);
+        DK.toast('已设为本次会话使用（重启插件后失效）');
+      }
       // 内网接口按需申请主机权限（MV3 要求）
       try {
         const origin = new URL(apiUrl.value.trim()).origin + '/*';
@@ -103,7 +121,12 @@ DK.registerTool({
         h('label', { text: '响应路径' }), apiPath
       ]),
       h('div', { class: 'row' }, [apiHeaders]),
-      h('div', { class: 'row' }, [h('button', { class: 'btn primary', text: '保存接口配置', onclick: saveApi })])
+      h('div', { class: 'row', style: { marginTop: '8px', alignItems: 'center' } }, [
+        h('button', { class: 'btn primary', text: '保存接口配置', onclick: saveApi }),
+        h('label', { class: 'chk-label', title: '取消勾选则仅本次会话使用，含 token 的密钥不会写入本地存储', style: { marginLeft: '10px' } }, [rememberChk, '记住配置（含密钥请取消勾选）'])
+      ]),
+      h('div', { class: 'tip warn', style: { marginTop: '8px' }, html:
+        '⚠️ 注意：勾选「记住配置」后，<code>Authorization</code> 等密钥会以<b>明文</b>保存在浏览器本地存储（chrome.storage.local），任何能读取该存储的程序都可获取。共享设备请勿保存含 token 的配置，改用「本次会话」模式。' })
     ]));
 
     // ---- 数据导入导出 ----

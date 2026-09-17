@@ -320,12 +320,29 @@
   function dictStats() {
     return { total: DICT.size, curated: builtinCount, bigLoaded, pinyin: buildPinyin().size };
   }
+  // 首字分桶索引：把 7.6 万词条的线性扫描降到首字桶内，避免每次按键全量扫描（见 CODE_REVIEW M1）
+  const PREFIX_INDEX = new Map();   // 首字 -> [zh 键]
+  let indexSize = -1;
+  function buildIndex() {
+    if (indexSize === DICT.size) return;   // 词典扩容后自动重建
+    PREFIX_INDEX.clear();
+    for (const k of DICT.keys()) {
+      const c = k.charAt(0);
+      let arr = PREFIX_INDEX.get(c);
+      if (!arr) { arr = []; PREFIX_INDEX.set(c, arr); }
+      arr.push(k);
+    }
+    indexSize = DICT.size;
+  }
   function suggestZh(prefix) {
     const out = [];
     prefix = prefix.trim();
     if (!prefix) return out;
-    for (const [k, v] of DICT) {
-      if (k.startsWith(prefix) || k.includes(prefix)) { out.push({ zh: k, en: v.join(', ') }); if (out.length >= 30) break; }
+    buildIndex();
+    const bucket = PREFIX_INDEX.get(prefix.charAt(0));
+    const pool = bucket || DICT.keys();
+    for (const k of pool) {
+      if (k.startsWith(prefix) || k.includes(prefix)) { out.push({ zh: k, en: DICT.get(k).join(', ') }); if (out.length >= 30) break; }
     }
     return out;
   }

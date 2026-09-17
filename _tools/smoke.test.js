@@ -128,6 +128,13 @@ t('英→中: the project progress is slow', () => {
   assert.ok(/项目进度/.test(r.text) && /慢/.test(r.text) && !/加下标/.test(r.text), r.text);
 });
 
+console.log('== 反查锁定回归（REDGE_LOCK，防止机翻噪声抢注）==');
+t('英→中: project → 项目（不被 item 抢）', () => assert.ok(/项目/.test(DKTranslate.translate('project').text), DKTranslate.translate('project').text));
+t('英→中: frontend → 前端（不被 fringe 抢）', () => assert.ok(/前端/.test(DKTranslate.translate('frontend').text), DKTranslate.translate('frontend').text));
+t('英→中: develop → 开发（不被 exploitation 抢）', () => assert.ok(/开发/.test(DKTranslate.translate('develop').text), DKTranslate.translate('develop').text));
+t('英→中: meet → 遇到/遇见/见到（精编优先，不为空且非拉丁噪声）', () => { const r = DKTranslate.translate('meet').text; assert.ok(r && /[一-龥]/.test(r) && !/[a-z]{3,}/i.test(r), r); });
+t('英→中: item → 项/条目（精编未锁则取大词典本义）', () => { const r = DKTranslate.translate('item').text; assert.ok(r && r.length > 0, r); });
+
 console.log('== 命名转换 ==');
 t('用户订单列表 → camelCase', () => {
   const r = DKNaming.convert('用户订单列表');

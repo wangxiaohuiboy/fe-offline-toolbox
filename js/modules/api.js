@@ -39,7 +39,9 @@ DK.registerTool({
       const opt = {
         method: method.value,
         headers: parseHeaders(),
-        signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined
+        // 旧版 Chrome（<103）无 AbortSignal.timeout，降级为不超时（用户可手动取消）
+        signal: (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function')
+          ? AbortSignal.timeout(15000) : undefined
       };
       if (!['GET', 'HEAD'].includes(method.value) && bodyTa.value.trim()) {
         opt.body = bodyTa.value;
