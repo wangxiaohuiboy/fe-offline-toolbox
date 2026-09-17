@@ -10,64 +10,64 @@ DK.registerTool({
       '输入中文（如 <b>用户订单列表</b>、<b>商品详情页</b>），基于离线词典 + 拼音兜底转换为各类命名风格，点击卡片即可复制。' }));
 
     const input = h('textarea', { class: 'ta', placeholder: '输入中文词组，如：订单支付成功回调' });
-    const out = h('div', {});
-    const batch = h('div', {});
+    const resultContainer = h('div', {});
+    const batchContainer = h('div', {});
     let mode = 'single';
 
-    function card(k, v) {
-      if (!v) return null;
-      return h('div', { class: 'name-card', title: '点击复制', onclick: () => { DK.copy(v).then(ok => DK.toast(ok ? '已复制：' + v : '复制失败', ok ? '' : 'err')); } }, [
-        h('span', { class: 'k', text: k }),
-        h('span', { class: 'v', text: v })
+    function nameCard(label, value) {
+      if (!value) return null;
+      return h('div', { class: 'name-card', title: '点击复制', onclick: () => { DK.copy(value).then(ok => DK.toast(ok ? '已复制：' + value : '复制失败', ok ? '' : 'err')); } }, [
+        h('span', { class: 'k', text: label }),
+        h('span', { class: 'v', text: value })
       ]);
     }
 
     function renderSingle() {
-      out.innerHTML = '';
-      batch.innerHTML = '';
+      resultContainer.innerHTML = '';
+      batchContainer.innerHTML = '';
       const text = input.value.trim();
       if (!text) return;
-      const r = DKNaming.convert(text);
-      if (!r) return;
-      const grid = h('div', { class: 'name-grid' });
-      [['camelCase 变量/函数', r.camelCase], ['PascalCase 类/组件', r.PascalCase],
-       ['snake_case python风格', r.snake_case], ['kebab-case css/文件', r['kebab-case']],
-       ['CONSTANT_CASE 常量', r.CONSTANT_CASE], ['拼音兜底', r['拼音驼峰']]
-      ].forEach(([k, v]) => { const c = card(k, v); if (c) grid.appendChild(c); });
-      out.appendChild(grid);
+      const result = DKNaming.convert(text);
+      if (!result) return;
+      const styleGrid = h('div', { class: 'name-grid' });
+      [['camelCase 变量/函数', result.camelCase], ['PascalCase 类/组件', result.PascalCase],
+       ['snake_case python风格', result.snake_case], ['kebab-case css/文件', result['kebab-case']],
+       ['CONSTANT_CASE 常量', result.CONSTANT_CASE], ['拼音兜底', result.pinyinCamel]
+      ].forEach(([label, value]) => { const card = nameCard(label, value); if (card) styleGrid.appendChild(card); });
+      resultContainer.appendChild(styleGrid);
 
-      out.appendChild(h('div', { class: 'muted', style: { margin: '12px 0 6px' }, text: '工程命名建议' }));
-      const grid2 = h('div', { class: 'name-grid' });
-      Object.entries(r.suggestions).forEach(([k, v]) => { const c = card(k, v); if (c) grid2.appendChild(c); });
-      out.appendChild(grid2);
+      resultContainer.appendChild(h('div', { class: 'muted', style: { margin: '12px 0 6px' }, text: '工程命名建议' }));
+      const suggestionGrid = h('div', { class: 'name-grid' });
+      Object.entries(result.suggestions).forEach(([label, value]) => { const card = nameCard(label, value); if (card) suggestionGrid.appendChild(card); });
+      resultContainer.appendChild(suggestionGrid);
 
-      if (r.words.length) {
-        out.appendChild(h('div', { class: 'muted', style: { margin: '10px 0 4px' }, text: '分词结果：' + r.words.join(' · ') }));
+      if (result.words.length) {
+        resultContainer.appendChild(h('div', { class: 'muted', style: { margin: '10px 0 4px' }, text: '分词结果：' + result.words.join(' · ') }));
       }
     }
 
     function renderBatch() {
-      out.innerHTML = '';
-      batch.innerHTML = '';
-      const lines = input.value.split('\n').map(s => s.trim()).filter(Boolean);
-      if (!lines.length) return;
-      const rows = lines.map(line => ({ line, r: DKNaming.convert(line) }));
-      const mkTable = (key, label) => {
-        const valid = rows.filter(x => x.r && x.r[key]);
-        if (!valid.length) return null;
+      resultContainer.innerHTML = '';
+      batchContainer.innerHTML = '';
+      const inputLines = input.value.split('\n').map(line => line.trim()).filter(Boolean);
+      if (!inputLines.length) return;
+      const convertedRows = inputLines.map(line => ({ line, result: DKNaming.convert(line) }));
+      const buildTable = (styleKey, label) => {
+        const matchedRows = convertedRows.filter(row => row.result && row.result[styleKey]);
+        if (!matchedRows.length) return null;
         return h('div', { class: 'result-block', style: { marginBottom: '10px' } }, [
           h('div', { class: 'result-head' }, [
             h('span', { text: label }),
             h('button', { class: 'mini-btn', text: '复制全部', onclick: () => {
-              DK.copy(valid.map(x => x.r[key]).join('\n')).then(() => DK.toast('已复制 ' + valid.length + ' 行'));
+              DK.copy(matchedRows.map(row => row.result[styleKey]).join('\n')).then(() => DK.toast('已复制 ' + matchedRows.length + ' 行'));
             } })
           ]),
-          h('div', { class: 'result-pre', style: { maxHeight: '200px' }, text: valid.map(x => x.r[key]).join('\n') })
+          h('div', { class: 'result-pre', style: { maxHeight: '200px' }, text: matchedRows.map(row => row.result[styleKey]).join('\n') })
         ]);
       };
-      ['camelCase', 'snake_case', 'CONSTANT_CASE'].forEach(key => {
-        const t = mkTable(key, key);
-        if (t) batch.appendChild(t);
+      ['camelCase', 'snake_case', 'CONSTANT_CASE'].forEach(styleKey => {
+        const table = buildTable(styleKey, styleKey);
+        if (table) batchContainer.appendChild(table);
       });
     }
 
@@ -77,10 +77,10 @@ DK.registerTool({
     body.appendChild(h('div', { class: 'row', style: { margin: '8px 0 12px' } }, [
       h('button', { class: 'btn primary', text: '单词组模式', onclick: e => { mode = 'single'; renderSingle(); } }),
       h('button', { class: 'btn', text: '批量模式（每行一个）', onclick: () => { mode = 'batch'; renderBatch(); } }),
-      h('button', { class: 'btn', text: '清空', onclick: () => { input.value = ''; out.innerHTML = ''; batch.innerHTML = ''; input.focus(); } })
+      h('button', { class: 'btn', text: '清空', onclick: () => { input.value = ''; resultContainer.innerHTML = ''; batchContainer.innerHTML = ''; input.focus(); } })
     ]));
-    body.appendChild(out);
-    body.appendChild(batch);
+    body.appendChild(resultContainer);
+    body.appendChild(batchContainer);
 
     input.value = '用户订单列表';
     renderSingle();
