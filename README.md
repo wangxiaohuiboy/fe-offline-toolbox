@@ -49,8 +49,9 @@
 
 - **词典翻译**（默认）：基于本地词典逐词直译，术语准确、即时响应。结构词（的/了/把等）自动省略；
   团队业务术语在「设置 → 自定义词库」维护，翻译和命名立即生效
-- **神经翻译**：本地 WASM 运行 [Transformers.js](https://github.com/huggingface/transformers.js) +
-  opus-mt-zh-en 模型（Marian NMT），真正的整句神经翻译，语句自然通顺。模型文件随 zip 分发（约 110MB），
+- **神经翻译（中英双向）**：本地 WASM 运行 [Transformers.js](https://github.com/huggingface/transformers.js) +
+  opus-mt 系列模型（Marian NMT），真正的整句神经翻译，语句自然通顺。中→英用 `opus-mt-zh-en`、英→中用 `opus-mt-en-zh`，
+  按输入是否含中文自动判定方向，无需手动切换。两个模型文件随 zip 分发（共约 220MB），
   不发任何网络请求。首次点击需加载模型约 10-30 秒，单句推理约 2-10 秒（视句子长度）
   - 实测：「仓库的代码已经超过一万行了，需要安排一次代码评审。」→ *The warehouse code has exceeded 10,000 lines and requires a code review.*
   - 从 GitHub 拉取源码时模型不进 git（体积原因），运行 `bash tools/download_models.sh` 即可补齐（国内默认走 hf-mirror.com 镜像）

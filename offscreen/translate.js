@@ -8,7 +8,7 @@
     if (!msg || msg.type !== 'DK_NEURAL') return false;
     const reqId = msg.reqId;
     const progress = s => { try { chrome.runtime.sendMessage({ type: 'DK_NEURAL_PROGRESS', reqId, status: s }); } catch (e) {} };
-    DKNeural.run(msg.text, { onStatus: progress })
+    DKNeural.run(msg.text, { dir: msg.dir, onStatus: progress })
       .then(en => { try { chrome.runtime.sendMessage({ type: 'DK_NEURAL_DONE', reqId, text: en }); } catch (e) {} })
       .catch(e => { try { chrome.runtime.sendMessage({ type: 'DK_NEURAL_DONE', reqId, error: e && e.message }); } catch (e2) {} });
     return false; // 异步处理，不占用 sendResponse

@@ -10,7 +10,7 @@ DK.registerTool({
     body.appendChild(h('div', { class: 'tip', html:
       '<b>离线词典</b>：共 <b>' + st.total.toLocaleString() + '</b> 个中文词条（团队精编 ' + st.curated + ' + 扩充词典）' +
       (st.pinyin ? '、拼音表 ' + st.pinyin + ' 字' : '') + '，内网断网可用。<br>' +
-      '<b>词典翻译</b>=逐词直译（术语准）；<b>神经翻译</b>=本地 AI 模型整句翻译（语句更自然，中→英，首次加载模型约 10-30 秒）。' +
+      '<b>词典翻译</b>=逐词直译（术语准）；<b>神经翻译</b>=本地 AI 模型整句翻译（语句更自然，<b>中英双向</b>：中→英用 opus-mt-zh-en、英→中用 opus-mt-en-zh，自动判定方向，首次加载模型约 10-30 秒）。' +
       '未收录词可到「设置 → 自定义词库」补充。' }));
 
     const input = h('textarea', { class: 'ta', placeholder: '输入中文或英文…（支持整段粘贴）' });
@@ -108,24 +108,20 @@ DK.registerTool({
       } finally { btn.textContent = '接口翻译'; btn.disabled = false; }
     }
 
-    // ---- 神经翻译（本地 WASM 模型，Transformers.js + opus-mt-zh-en，完全离线）----
+    // ---- 神经翻译（本地 WASM 模型，Transformers.js + opus-mt 系列，完全离线）----
+    // 双向：中→英用 opus-mt-zh-en，英→中用 opus-mt-en-zh；按输入是否含中文自动判定方向。
     // 优先走 Offscreen Document 常驻加载（避免面板弹窗关闭中断）；不可用时降级到本页面加载。
-    let neuralPipe = null;
-    let neuralLoading = false;
+    const pipes = {};   // 方向 -> 本页面已加载 pipeline
 
     // 本页面加载（降级路径）
-    async function getNeuralPipe(onStatus) {
-      if (neuralPipe) return neuralPipe;
-      if (neuralLoading) throw new Error('模型加载中，请稍候…');
-      neuralLoading = true;
-      try {
-        neuralPipe = await window.DKNeural.getPipeline(onStatus);
-        return neuralPipe;
-      } finally { neuralLoading = false; }
+    async function getNeuralPipe(dir, onStatus) {
+      if (pipes[dir]) return pipes[dir];
+      pipes[dir] = await window.DKNeural.getPipeline(dir, onStatus);
+      return pipes[dir];
     }
 
     // 后台 Offscreen 翻译：返回 Promise，进度通过消息回传
-    function neuralOffscreen(text, onStatus) {
+    function neuralOffscreen(text, dir, onStatus) {
       return new Promise((resolve, reject) => {
         const reqId = 'n' + Date.now() + Math.random().toString(36).slice(2, 7);
         let done = false;
@@ -149,7 +145,7 @@ DK.registerTool({
         timer = setTimeout(() => { if (!done) { cleanup(); reject(new Error('后台神经翻译超时')); } }, 180000);
         chrome.runtime.sendMessage({ type: 'DK_ENSURE_OFFSCREEN' }, resp => {
           if (!resp || !resp.ok) { cleanup(); reject(new Error('OFFSCREEN_UNAVAILABLE')); return; }
-          chrome.runtime.sendMessage({ type: 'DK_NEURAL', text, reqId }).catch(e => { cleanup(); reject(e); });
+          chrome.runtime.sendMessage({ type: 'DK_NEURAL', text, dir, reqId }).catch(e => { cleanup(); reject(e); });
         });
       });
     }
@@ -182,40 +178,39 @@ DK.registerTool({
     async function neuralTranslate() {
       const text = input.value.trim();
       if (!text) { DK.toast('请先输入要翻译的内容', 'err'); return; }
-      if (!DKTranslate.CJK_RE.test(text)) {
-        DK.toast('神经模型为 中→英 方向；英文请用「翻译」按钮（词典直译）', 'err');
-        return;
-      }
+      // 自动判定方向：含中文 → 中→英（opus-mt-zh-en）；否则 → 英→中（opus-mt-en-zh）
+      const dir = DKTranslate.CJK_RE.test(text) ? 'zh2en' : 'en2zh';
+      const model = dir === 'en2zh' ? 'opus-mt-en-zh' : 'opus-mt-zh-en';
       const btn = neuralBtn;
       btn.disabled = true;
       btn.textContent = '加载中…';
       neuralStatus.textContent = '';
       const setStatus = s => { neuralStatus.textContent = s; };
       try {
-        let en;
+        let trans;
         try {
-          en = await neuralOffscreen(text, setStatus);   // 优先后台常驻
+          trans = await neuralOffscreen(text, dir, setStatus);   // 优先后台常驻
       } catch (e) {
         // 后台不可用或超时：降级到本页面加载（保证可用性，不硬失败）
         if (e && (e.message === 'OFFSCREEN_UNAVAILABLE' || /超时/.test(e.message))) {
             setStatus('后台不可用，改用本页面加载…');
-            const pipe = await getNeuralPipe(setStatus);  // 降级到本页面
+            const pipe = await getNeuralPipe(dir, setStatus);  // 降级到本页面
             setStatus('翻译中…');
             const t0 = performance.now();
             const result = await pipe(text, { max_new_tokens: 256 });
             const ms = Math.round(performance.now() - t0);
-            en = (result && result[0] && result[0].translation_text) || '（无输出）';
-            setStatus('本地神经模型 opus-mt-zh-en（' + ms + ' ms），完全离线');
+            trans = (result && result[0] && result[0].translation_text) || '（无输出）';
+            setStatus('本地神经模型 ' + model + '（' + ms + ' ms），完全离线');
           } else {
             throw e;
           }
         }
-        out.pre.textContent = en;
-        dirLabel.textContent = '中 → 英 · 神经整句';
-        lastResult = { dir: 'zh2en', text: en };
+        out.pre.textContent = trans;
+        dirLabel.textContent = (dir === 'en2zh' ? '英 → 中' : '中 → 英') + ' · 神经整句';
+        lastResult = { dir, text: trans };
         noteBox.innerHTML = '';
         noteBox.appendChild(h('div', { class: 'tip', html:
-          '本地神经模型 opus-mt-zh-en，完全离线，不出浏览器。' }));
+          '本地神经模型 ' + model + '，完全离线，不出浏览器。' }));
         termsBox.innerHTML = '';
       } catch (e) {
         if (isMissingAssetsErr(e)) showMissingAssets(missingFromErr(e));
@@ -252,7 +247,7 @@ DK.registerTool({
         } catch (e) { DK.toast('无法读取（该页面不支持，如浏览器内置页）', 'err'); }
       } }),
       apiBtn = h('button', { class: 'btn', text: '接口翻译', title: '使用设置中配置的内网翻译接口', onclick: apiTranslate }),
-      neuralBtn = h('button', { class: 'btn', text: '神经翻译', title: '本地 AI 模型整句翻译（中→英，完全离线，首次加载较慢）', onclick: neuralTranslate }),
+      neuralBtn = h('button', { class: 'btn', text: '神经翻译', title: '本地 AI 模型整句翻译（中英双向，自动判定方向，完全离线，首次加载较慢）', onclick: neuralTranslate }),
       neuralStatus = h('span', { class: 'muted', style: { marginLeft: '8px', alignSelf: 'center', fontSize: '12px' } }),
       h('label', { class: 'chk-label', title: '未收录的词用拼音代替（变量命名场景更实用）' }, [pinyinChk, '未收录字用拼音'])
     ]);

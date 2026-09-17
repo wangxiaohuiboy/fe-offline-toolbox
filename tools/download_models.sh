@@ -8,10 +8,12 @@ cd "$(dirname "$0")/.."
 
 HOST="${1:-mirror}"
 case "$HOST" in
-  mirror)    MBASE="https://hf-mirror.com/Xenova/opus-mt-zh-en/resolve/main" ;;
-  huggingface) MBASE="https://huggingface.co/Xenova/opus-mt-zh-en/resolve/main" ;;
+  mirror)    MIRROR_BASE="https://hf-mirror.com/Xenova" ;;
+  huggingface) MIRROR_BASE="https://huggingface.co/Xenova" ;;
   *) echo "未知镜像: $1（可选 mirror / huggingface）"; exit 1 ;;
 esac
+# 双向神经翻译需要两个方向各一个模型：中→英 / 英→中
+MODELS="opus-mt-zh-en opus-mt-en-zh"
 
 TF_VER="4.3.0"
 ORT_VER="1.31.0-dev.20260914-8d85527a0"
@@ -43,27 +45,33 @@ for f in ort-wasm-simd-threaded.mjs ort-wasm-simd-threaded.wasm ort-wasm-simd-th
   echo "OK js/lib/ort/$f ($(du -h "js/lib/ort/$f" | cut -f1))"
 done
 
-# ---- 2. 模型（opus-mt-zh-en，约 110MB）----
-mkdir -p models/opus-mt-zh-en/onnx
-echo "从 $MBASE 下载模型…"
-for f in config.json generation_config.json tokenizer.json tokenizer_config.json special_tokens_map.json vocab.json source.spm target.spm; do
-  [ -s "models/opus-mt-zh-en/$f" ] || curl -L --fail -o "models/opus-mt-zh-en/$f" "$MBASE/$f"
-  check_not_html "models/opus-mt-zh-en/$f"
-  echo "OK $f"
-done
-for f in encoder_model_quantized.onnx decoder_model_merged_quantized.onnx; do
-  [ -s "models/opus-mt-zh-en/onnx/$f" ] || curl -L --fail -o "models/opus-mt-zh-en/onnx/$f" "$MBASE/onnx/$f"
-  check_not_html "models/opus-mt-zh-en/onnx/$f"
-  echo "OK onnx/$f ($(du -h "models/opus-mt-zh-en/onnx/$f" | cut -f1))"
+# ---- 2. 模型（双向：opus-mt-zh-en + opus-mt-en-zh，各约 110MB，共约 220MB）----
+for M in $MODELS; do
+  MBASE="$MIRROR_BASE/$M/resolve/main"
+  mkdir -p "models/$M/onnx"
+  echo "==== 下载模型 $M（从 $MBASE）===="
+  for f in config.json generation_config.json tokenizer.json tokenizer_config.json special_tokens_map.json vocab.json source.spm target.spm; do
+    [ -s "models/$M/$f" ] || curl -L --fail -o "models/$M/$f" "$MBASE/$f"
+    check_not_html "models/$M/$f"
+    echo "OK $M/$f"
+  done
+  for f in encoder_model_quantized.onnx decoder_model_merged_quantized.onnx; do
+    [ -s "models/$M/onnx/$f" ] || curl -L --fail -o "models/$M/onnx/$f" "$MBASE/onnx/$f"
+    check_not_html "models/$M/onnx/$f"
+    echo "OK $M/onnx/$f ($(du -h "models/$M/onnx/$f" | cut -f1))"
+  done
 done
 
 echo
 echo "==== 下载产物 sha256（建议团队固定基线，后续可加 EXPECTED_SHA256 校验）===="
+for M in $MODELS; do
+  for f in "models/$M/onnx/encoder_model_quantized.onnx" "models/$M/onnx/decoder_model_merged_quantized.onnx"; do
+    [ -s "$f" ] && echo "$($SHA_CMD "$f" | awk '{print $1}')  $f"
+  done
+done
 for f in js/lib/transformers/transformers.min.js \
          js/lib/ort/ort-wasm-simd-threaded.wasm \
-         js/lib/ort/ort-wasm-simd-threaded.asyncify.wasm \
-         models/opus-mt-zh-en/onnx/encoder_model_quantized.onnx \
-         models/opus-mt-zh-en/onnx/decoder_model_merged_quantized.onnx; do
+         js/lib/ort/ort-wasm-simd-threaded.asyncify.wasm; do
   [ -s "$f" ] && echo "$($SHA_CMD "$f" | awk '{print $1}')  $f"
 done
-echo "完成。重新加载扩展即可使用「神经翻译」。"
+echo "完成。重新加载扩展即可使用双向「神经翻译」（中→英 / 英→中）。"
