@@ -1,9 +1,9 @@
 node_modules/
 .DS_Store
 *.log
-# 神经翻译模型（约 110MB，不进 git；用 _tools/download_models.sh 下载，或直接解压完整 zip）
+# 神经翻译模型（约 110MB，不进 git；用 tools/download_models.sh 下载，或直接解压完整 zip）
 models/opus-mt-zh-en/onnx/*.onnx
 
-# 库大文件（GitHub secret scanning 会误报 transformers.min.js，故不入库，由 _tools/download_models.sh 从 jsdelivr 下载）
+# 库大文件（GitHub secret scanning 会误报 transformers.min.js，故不入库，由 tools/download_models.sh 从 jsdelivr 下载）
 js/lib/transformers/transformers.min.js
 js/lib/ort/*.wasm

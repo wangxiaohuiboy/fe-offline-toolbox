@@ -8,7 +8,7 @@
   3. 用 API 创建 tree + commit（精确指定 author/committer 日期 → 生成的 commit SHA 与本地一致）
   4. 最后 PATCH ref 指向新提交（fast-forward）
 
-用法：python3 _tools/push_api.py [remote] [branch]
+用法：python3 tools/push_api.py [remote] [branch]
   默认 origin main。token 从 `gh auth token` 读取，不落盘。
 """
 import json

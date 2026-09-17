@@ -1,7 +1,7 @@
 #!/bin/bash
 # 下载神经翻译运行库与模型文件（约 150MB）
 # 国内网络：模型走 hf-mirror.com（默认），库走 jsdelivr（国内可达）；海外可加参数 huggingface
-# 用法: bash _tools/download_models.sh [mirror|huggingface]
+# 用法: bash tools/download_models.sh [mirror|huggingface]
 # 供应链安全：下载后做内容校验（镜像若返回 HTML 错误页则失败），并打印 sha256 供团队固定基线。
 set -e
 cd "$(dirname "$0")/.."

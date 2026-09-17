@@ -1,6 +1,6 @@
 /* 自动生成，请勿手工编辑：精简版中英词典
  * 数据来源：ECDICT (MIT License, https://github.com/skywind3000/ECDICT)
- * 生成脚本：_tools/gen_bigdict.py  共 76792 条
+ * 生成脚本：tools/gen_bigdict.py  共 76792 条
  */
 window.DK_DICT_BIG = `
 那=the,that

@@ -13,7 +13,7 @@
 | `js/lib/dict.big.js` | 76,798 | 自动生成，勿手改 |
 | `js/lib/dict.data.js` | 1,363 | 团队精编词典 |
 | 其余 `js/**`（除大词典） | ~5,140 | 手写引擎 + 21 个工具模块 |
-| `_tools/**`（Python/JS） | ~720 | 构建 / 推送 / 测试脚本 |
+| `tools/**`（Python/JS） | ~720 | 构建 / 推送 / 测试脚本 |
 
 目录职责清晰：`js/lib/` 放零依赖引擎（翻译、命名、MD5、核心工具），`js/modules/` 每个工具一个 IIFE 注册到 `DK.tools`，`content/` 划词脚本，`background.js` Service Worker。单文件职责单一，耦合度低。
 
@@ -21,7 +21,7 @@
 
 ## 1. 架构亮点（值得保留）
 
-- **翻译引擎纯函数化、零依赖**：`translate-core.js` 全部为纯逻辑，已有 `_tools/smoke.test.js` 共 38 条断言且全部通过，覆盖中→英/英→中/复数/短语/口语/命名/拼音/MD5。
+- **翻译引擎纯函数化、零依赖**：`translate-core.js` 全部为纯逻辑，已有 `tools/smoke.test.js` 共 38 条断言且全部通过，覆盖中→英/英→中/复数/短语/口语/命名/拼音/MD5。
 - **`REDGE_LOCK` 反查锁定机制**：精编词典锁定的英文词，扩充词典永不覆盖，从根本上挡住了"加下标次序=is""项目=item""前端=fringe"这类机翻噪声抢注。设计巧妙。
 - **面板级错误兜底**（`app.js` 全局 `error`/`unhandledrejection` → `fatal()`）：任何脚本异常都会显示在页面上，不会静默白屏，利于现场排障。
 - **MV3 合规到位**：CSP 含 `'wasm-unsafe-eval'`；神经翻译明确 `numThreads=1` 规避扩展页无 `SharedArrayBuffer` 的限制；`web_accessible_resources` 仅暴露必要资源。
@@ -36,7 +36,7 @@
 - 位置：`manifest.json` 未列 `models/`、`js/lib/ort/*`、`js/lib/transformers/*`；`.gitignore` 明确排除这些文件（约 110MB+57MB）。
 - 问题：新克隆仓库点"神经翻译"时，`getNeuralPipe` 会因为 `chrome.runtime.getURL('models/...')` 404 而抛错，仅弹 toast。用户无法从 UI 得知"需要先下载模型"。
 - 建议：
-  1. 在 `getNeuralPipe` 捕获异常时检测文件是否存在（用 `fetch` HEAD 或 `chrome.runtime.getPackageDirectoryEntry`），缺失则给出明确引导："首次使用请运行 `_tools/download_models.sh`"。
+  1. 在 `getNeuralPipe` 捕获异常时检测文件是否存在（用 `fetch` HEAD 或 `chrome.runtime.getPackageDirectoryEntry`），缺失则给出明确引导："首次使用请运行 `tools/download_models.sh`"。
   2. README 的"离线翻译"小节已提到下载脚本，但应在"神经翻译"按钮首次出现时加一行提示文案（现状 tooltip 已说"首次加载较慢"，需补"若报错请先下载模型"）。
 
 ### 🔴 H2. 神经模型加载绑定在面板窗口上下文，关闭即中断

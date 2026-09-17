@@ -160,7 +160,7 @@ DK.registerTool({
       noteBox.innerHTML = '';
       noteBox.appendChild(h('div', { class: 'tip warn', html:
         '<b>神经翻译模型/库未就绪</b>（默认不进 git，需先下载）：' + list +
-        '<br>请在项目根目录运行 <code>bash _tools/download_models.sh</code> 下载模型与运行库，' +
+        '<br>请在项目根目录运行 <code>bash tools/download_models.sh</code> 下载模型与运行库，' +
         '然后回到本插件页面重新点击「神经翻译」。<br>' +
         '（词典翻译不受影响，可继续正常使用。）' }));
       DK.toast('神经翻译模型未下载', 'err');

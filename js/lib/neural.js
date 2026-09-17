@@ -1,7 +1,7 @@
 /* 神经翻译引擎（共享）：可在面板页或 Offscreen Document 中运行。
  * 封装 Transformers.js + opus-mt-zh-en 的加载与推理；提供模型文件存在性检测，
  * 避免「首次使用因未下载模型而静默失败」（见 CODE_REVIEW.md H1）。
- * 模型/库默认被 .gitignore 排除，需先运行 _tools/download_models.sh。 */
+ * 模型/库默认被 .gitignore 排除，需先运行 tools/download_models.sh。 */
 (function () {
   'use strict';
 
@@ -57,17 +57,30 @@
         mod.env.backends.onnx.wasm.numThreads = 1;   // 扩展页无 SharedArrayBuffer，单线程
       }
       onStatus && onStatus('模型加载中…（首次约 10-30 秒）');
-      return await mod.pipeline('translation', 'opus-mt-zh-en', {
-        dtype: 'q8', device: 'wasm',
-        progress_callback: p => {
-          if (!onStatus) return;
-          if (p && p.status === 'progress' && p.total) {
-            onStatus('加载模型… ' + Math.round(p.loaded / p.total * 100) + '%（' + p.file.split('/').pop() + '）');
-          } else if (p && p.status) {
-            onStatus('模型加载：' + p.status);
+      // 抑制两条无害警告（不影响功能与翻译结果）：
+      // ① chrome-extension:// 本地文件响应不带 Content-Length，Transformers.js 会提示，属正常；
+      // ② opus-mt-zh-en 使用 Marian 分词器，Transformers.js 的 fast 分词器暂不支持，会自动回退到正确的 slow 分词器
+      const _origWarn = console.warn;
+      console.warn = function () {
+        const s = Array.prototype.map.call(arguments, x => (x && x.message) || String(x)).join(' ');
+        if (/Unable to determine content-length/i.test(s) || /MarianTokenizer/i.test(s)) return;
+        return _origWarn.apply(console, arguments);
+      };
+      try {
+        return await mod.pipeline('translation', 'opus-mt-zh-en', {
+          dtype: 'q8', device: 'wasm',
+          progress_callback: p => {
+            if (!onStatus) return;
+            if (p && p.status === 'progress' && p.total) {
+              onStatus('加载模型… ' + Math.round(p.loaded / p.total * 100) + '%（' + p.file.split('/').pop() + '）');
+            } else if (p && p.status) {
+              onStatus('模型加载：' + p.status);
+            }
           }
-        }
-      });
+        });
+      } finally {
+        console.warn = _origWarn;
+      }
     })();
     try { pipe = await loadingP; return pipe; }
     finally { loading = false; }

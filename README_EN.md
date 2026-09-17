@@ -45,7 +45,7 @@ The Translate tool ships with **two offline engines**:
 - **Dictionary mode** (default): word-by-word lookup against local dictionaries — accurate terms, instant response. Structural particles (的/了/把…) are automatically omitted. Maintain business terms in Settings → Custom Dictionary; instantly affects both translation and naming
 - **Neural mode**: a local AI model (opus-mt-zh-en, Marian NMT) runs entirely in your browser via [Transformers.js](https://github.com/huggingface/transformers.js) + WebAssembly — real full-sentence translation with natural grammar. The model files (~110MB) ship with the zip distribution and never touch the network. First load takes 10-30s; per-sentence inference ~2-10s
   - Example: `仓库的代码已经超过一万行了，需要安排一次代码评审。` → *The warehouse code has exceeded 10,000 lines and requires a code review.*
-  - When cloning from GitHub, model weights are excluded (size); run `bash _tools/download_models.sh` to fetch them (defaults to the hf-mirror.com mirror for China)
+  - When cloning from GitHub, model weights are excluded (size); run `bash tools/download_models.sh` to fetch them (defaults to the hf-mirror.com mirror for China)
 - **Intranet translation API**: if your company runs a translation service, configure the endpoint (GET/POST, param name, response path, headers) in Settings
 
 Dictionary-mode example: `用户支付订单后自动发送短信通知` → `user pay order auto send sms notification`
@@ -69,7 +69,7 @@ fe-offline-kit/
 │   ├── app.js             # Controller / routing / search
 │   ├── lib/               # Dictionary data, translate engine, naming, utils
 │   ├── modules/           # 17 tool modules (one file per tool)
-└── _tools/                # Dev scripts (dictionary/icon generation, smoke tests)
+└── tools/                # Dev scripts (dictionary/icon generation, smoke tests)
 ```
 
 ## ✏️ Extending the Dictionary
@@ -80,11 +80,11 @@ Edit `js/lib/dict.data.js` (highest priority), one entry per line: `中文=engli
 
 ```bash
 # Regenerate the extended dictionary (requires ECDICT csv, see script header)
-python _tools/gen_bigdict.py 30000
+python tools/gen_bigdict.py 30000
 # Regenerate the pinyin table (requires pypinyin)
-python _tools/gen_pinyin.py
+python tools/gen_pinyin.py
 # Run smoke tests (22 cases)
-node _tools/smoke.test.js
+node tools/smoke.test.js
 ```
 
 ## 📮 Contact

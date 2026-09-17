@@ -53,7 +53,7 @@
   opus-mt-zh-en 模型（Marian NMT），真正的整句神经翻译，语句自然通顺。模型文件随 zip 分发（约 110MB），
   不发任何网络请求。首次点击需加载模型约 10-30 秒，单句推理约 2-10 秒（视句子长度）
   - 实测：「仓库的代码已经超过一万行了，需要安排一次代码评审。」→ *The warehouse code has exceeded 10,000 lines and requires a code review.*
-  - 从 GitHub 拉取源码时模型不进 git（体积原因），运行 `bash _tools/download_models.sh` 即可补齐（国内默认走 hf-mirror.com 镜像）
+  - 从 GitHub 拉取源码时模型不进 git（体积原因），运行 `bash tools/download_models.sh` 即可补齐（国内默认走 hf-mirror.com 镜像）
 - **内网翻译接口**：若公司内网有翻译服务，在「设置」中填接口地址（GET/POST、参数名、响应字段路径、请求头均可配）
 
 纯词典模式实测示例：`用户支付订单后自动发送短信通知` → `user pay order auto send sms notification`
@@ -83,7 +83,7 @@ fe-offline-kit/
 │   │   ├── naming.js          # 命名转换
 │   │   ├── md5.js / core.js   # 工具库
 │   ├── modules/           # 17 个工具模块（一个文件一个工具）
-└── _tools/                # 开发用脚本（词典生成/图标生成/冒烟测试），不影响使用
+└── tools/                # 开发用脚本（词典生成/图标生成/冒烟测试），不影响使用
 ```
 
 ## ✏️ 增补词典
@@ -94,11 +94,11 @@ fe-offline-kit/
 
 ```bash
 # 重新生成扩充词典（需 ECDICT csv，见脚本内说明）
-python _tools/gen_bigdict.py 30000
+python tools/gen_bigdict.py 30000
 # 重新生成拼音表（依赖 pypinyin）
-python _tools/gen_pinyin.py
+python tools/gen_pinyin.py
 # 核心逻辑冒烟测试（22 项）
-node _tools/smoke.test.js
+node tools/smoke.test.js
 ```
 
 ## 📮 联系方式

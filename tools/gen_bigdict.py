@@ -91,7 +91,7 @@ def main():
     with open(OUT, 'w', encoding='utf-8') as f:
         f.write('/* 自动生成，请勿手工编辑：精简版中英词典\n')
         f.write(' * 数据来源：ECDICT (MIT License, https://github.com/skywind3000/ECDICT)\n')
-        f.write(' * 生成脚本：_tools/gen_bigdict.py  共 %d 条\n */\n' % len(lines))
+        f.write(' * 生成脚本：tools/gen_bigdict.py  共 %d 条\n */\n' % len(lines))
         f.write('window.DK_DICT_BIG = `\n%s\n`;\n' % body)
 
     print('扫描 %d 行 / 采用 %d 词 → 中文词条 %d 个，输出 %d 行，文件 %.1f KB'
