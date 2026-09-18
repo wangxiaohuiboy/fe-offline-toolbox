@@ -27,6 +27,16 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 | **Cheat Sheet** | CSS tips / Git / npm / HTTP status codes / keyCodes |
 | **Settings** | Team custom dictionary (shared by translate & naming, import/export), intranet translation API config, selection-translate toggle, config backup |
 
+## 🚀 Offline intranet translation service
+
+For higher-quality translation, keep the extension lightweight and move inference to an intranet service:
+
+```text
+Chrome extension → intranet /translate → CTranslate2 + M2M100-418M int8
+```
+
+See [`server/translation-service`](server/translation-service/README_EN.md). It provides a single bidirectional M2M100 model, CPU int8 inference, glossary protection and code-symbol preservation without public internet access.
+
 ## 📌 Recent updates
 
 - **v1.7.0** Smart translation routing, long-text chunking, code/identifier protection, custom glossary integration and stable frontend terminology
@@ -74,7 +84,8 @@ fe-offline-kit/
 │   ├── app.js             # Controller / routing / search
 │   ├── lib/               # Dictionary data, translate engine, naming, utils
 │   ├── modules/           # 17 tool modules (one file per tool)
-└── tools/                # Dev scripts (dictionary/icon generation, smoke tests)
+├── tools/                # Dev scripts (dictionary/icon generation, smoke tests)
+└── server/translation-service/ # Optional offline intranet M2M100 service
 ```
 
 ## ✏️ Extending the Dictionary

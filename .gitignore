@@ -8,3 +8,6 @@ models/opus-mt-en-zh/onnx/*.onnx
 # 库大文件（GitHub secret scanning 会误报 transformers.min.js，故不入库，由 tools/download_models.sh 从 jsdelivr 下载）
 js/lib/transformers/transformers.min.js
 js/lib/ort/*.wasm
+
+__pycache__/
+*.pyc
