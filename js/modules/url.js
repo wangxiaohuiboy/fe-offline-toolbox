@@ -8,6 +8,12 @@ DK.registerTool({
     const { h } = DK;
     const input = h('textarea', { class: 'ta', style: { minHeight: '70px' }, placeholder: '粘贴 URL，如：https://api.example.com/v1/user?id=1&name=%E5%BC%A0%E4%B8%89&tab=info#detail' });
 
+    function addParamValue(target, key, value) {
+      if (!(key in target)) target[key] = value;
+      else if (Array.isArray(target[key])) target[key].push(value);
+      else target[key] = [target[key], value];
+    }
+
     function parse() {
       partsBox.innerHTML = '';
       paramBox.innerHTML = '';
@@ -42,9 +48,9 @@ DK.registerTool({
         });
         paramBox.appendChild(grid);
         const json = {};
-        params.forEach(([k, v]) => {
-          const num = v !== '' && !isNaN(+v) ? +v : v;
-          json[k] = num;
+        params.forEach(([key, value]) => {
+          const converted = value !== '' && !isNaN(+value) ? +value : value;
+          addParamValue(json, key, converted);
         });
         paramBox.appendChild(DK.resultBlock('参数 → JSON', () => JSON.stringify(json, null, 2)).el);
       } else {
@@ -80,7 +86,7 @@ DK.registerTool({
       h('button', { class: 'btn', text: '复制全部参数 JSON', onclick: () => {
         const u = parse(); if (!u) return DK.toast('请先输入 URL', 'err');
         const json = {};
-        [...u.searchParams.entries()].forEach(([k, v]) => { json[k] = v; });
+        [...u.searchParams.entries()].forEach(([key, value]) => addParamValue(json, key, value));
         DK.copy(JSON.stringify(json, null, 2)).then(() => DK.toast('已复制'));
       } })
     ]));

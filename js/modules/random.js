@@ -19,10 +19,22 @@ DK.registerTool({
       const hex = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
       return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-' + hex.slice(16, 20) + '-' + hex.slice(20);
     }
+    function secureRandomIndex(max) {
+      if (max <= 0) return 0;
+      const limit = Math.floor(0x100000000 / max) * max;
+      const buffer = new Uint32Array(1);
+      let value;
+      do { crypto.getRandomValues(buffer); value = buffer[0]; } while (value >= limit);
+      return value % max;
+    }
+
+    function pickRandom(pool) {
+      return pool.charAt(secureRandomIndex(pool.length));
+    }
+
     function nanoId(len) {
       const alphabet = 'useandom26T198340PX75pxJACKVERYMINDBUSHWOLFGQZbfghjklqvwyzrict';
-      const bytes = crypto.getRandomValues(new Uint8Array(len));
-      return [...bytes].map(b => alphabet[b % alphabet.length]).join('');
+      return Array.from({ length: len }, () => pickRandom(alphabet)).join('');
     }
 
     const pwLen = h('input', { class: 'ti', type: 'number', value: 16, min: 6, max: 64, style: { width: '60px', height: '30px' } });
@@ -32,25 +44,29 @@ DK.registerTool({
     const [optU, optL, optD, optS] = [pwOpt('大写', true), pwOpt('小写', true), pwOpt('数字', true), pwOpt('符号', false)];
 
     function genPassword() {
-      let pool = '';
-      if (optU.firstChild.checked) pool += 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-      if (optL.firstChild.checked) pool += 'abcdefghijkmnpqrstuvwxyz';
-      if (optD.firstChild.checked) pool += '23456789';
-      if (optS.firstChild.checked) pool += '!@#$%^&*()-_=+[]{};:,.<>?';
-      if (!pool) { DK.toast('请至少选择一种字符', 'err'); return; }
-      const arr = crypto.getRandomValues(new Uint32Array(count() * (+pwLen.value)));
+      const pools = [];
+      if (optU.firstChild.checked) pools.push('ABCDEFGHJKLMNPQRSTUVWXYZ');
+      if (optL.firstChild.checked) pools.push('abcdefghijkmnpqrstuvwxyz');
+      if (optD.firstChild.checked) pools.push('23456789');
+      if (optS.firstChild.checked) pools.push('!@#$%^&*()-_=+[]{};:,.<>?');
+      if (!pools.length) { DK.toast('请至少选择一种字符', 'err'); return; }
+      const pool = pools.join('');
+      const length = Math.max(pools.length, +pwLen.value || 16);
       const outLines = [];
-      for (let i = 0; i < count(); i++) {
-        let s = '';
-        for (let j = 0; j < +pwLen.value; j++) s += pool[arr[i * (+pwLen.value) + j] % pool.length];
-        outLines.push(s);
+      for (let index = 0; index < count(); index++) {
+        const characters = pools.map(pickRandom);
+        while (characters.length < length) characters.push(pickRandom(pool));
+        for (let position = characters.length - 1; position > 0; position--) {
+          const swapIndex = secureRandomIndex(position + 1);
+          [characters[position], characters[swapIndex]] = [characters[swapIndex], characters[position]];
+        }
+        outLines.push(characters.join(''));
       }
       outPre.textContent = outLines.join('\n');
     }
 
     function randomNums() {
-      const arr = crypto.getRandomValues(new Uint32Array(count()));
-      outPre.textContent = [...arr].map(v => v % 100000).join('\n');
+      outPre.textContent = Array.from({ length: count() }, () => secureRandomIndex(100000)).join('\n');
     }
 
     const LOREM_CN = '这是一个占位文本用于在内网环境下快速填充界面内容测试布局效果无需依赖任何外部服务所有数据均在本地生成保证内网可用性同时支持自定义长度与段落数量方便前端同学快速搭建页面原型';

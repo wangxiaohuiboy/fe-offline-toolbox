@@ -94,6 +94,10 @@
     });
   }
 
+  function getCustomEntries() {
+    return [...custom.zh.entries()].map(([zh, englishList]) => ({ zh, en: englishList[0] || '' })).filter(entry => entry.zh && entry.en);
+  }
+
   function lookupZh(word) {
     return custom.zh.get(word) || DICT.get(word) || null;
   }
@@ -348,7 +352,7 @@
   }
 
   window.DKTranslate = {
-    translate, zhToWords, toPinyin, lookupZh, lookupEn, setCustomDict,
+    translate, zhToWords, toPinyin, lookupZh, lookupEn, setCustomDict, getCustomEntries,
     dictSize, dictStats, suggestZh, CJK_RE,
     loadBig, loadBigDict: loadBig
   };

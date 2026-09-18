@@ -92,24 +92,27 @@ DK.registerTool({
         url: apiUrl.value.trim(), method: apiMethod.value,
         qParam: apiParam.value.trim() || 'q', respPath: apiPath.value.trim() || 'data', headers
       };
+
+      // 先申请主机权限，确保仍处于用户点击手势内；之后再持久化配置。
+      const origin = new URL(apiUrl.value.trim()).origin + '/*';
+      const granted = await new Promise(resolve => {
+        try { chrome.permissions.request({ origins: [origin] }, resolve); } catch (error) { resolve(false); }
+      });
+      if (!granted) {
+        DK.toast('未授权主机权限，接口翻译将无法请求该地址', 'err');
+        return;
+      }
+
       if (rememberChk.checked) {
         window.DKSessionApi = null;
         await DK.store.set('dkApi', cfg);
-        DK.toast('接口配置已保存');
+        DK.toast('接口配置已保存并授权访问');
       } else {
         // 本次会话：仅在内存中，不写本地存储
         window.DKSessionApi = cfg;
         await DK.store.set('dkApi', null);
-        DK.toast('已设为本次会话使用（重启插件后失效）');
+        DK.toast('已设为本次会话使用并授权访问');
       }
-      // 内网接口按需申请主机权限（MV3 要求）
-      try {
-        const origin = new URL(apiUrl.value.trim()).origin + '/*';
-        chrome.permissions.request({ origins: [origin] }, granted => {
-          if (granted) DK.toast('已授权访问该内网地址');
-          else DK.toast('未授权主机权限，请求可能被拦截', 'err');
-        });
-      } catch (e) { /* ignore */ }
     };
 
     body.appendChild(h('div', { class: 'set-block' }, [

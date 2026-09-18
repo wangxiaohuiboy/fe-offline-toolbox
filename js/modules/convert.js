@@ -12,40 +12,74 @@ DK.registerTool({
     const outPre = out.pre;
     outPre.style.maxHeight = '300px';
 
-    // ---- 解析 ----
-    function parseCsvLine(line, delim) {
-      const cells = [];
-      let cur = '', inQ = false;
-      for (let i = 0; i < line.length; i++) {
-        const c = line[i];
-        if (inQ) {
-          if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false; }
-          else cur += c;
+    // ---- 解析：完整支持 RFC 4180 风格的引号与引号内换行 ----
+    function parseDelimited(text, delim) {
+      const rows = [];
+      let row = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let index = 0; index < text.length; index++) {
+        const char = text[index];
+        if (inQuotes) {
+          if (char === '"') {
+            if (text[index + 1] === '"') {
+              current += '"';
+              index++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            current += char;
+          }
+          continue;
+        }
+
+        if (char === '"') {
+          inQuotes = true;
+        } else if (char === delim) {
+          row.push(current);
+          current = '';
+        } else if (char === '\n') {
+          row.push(current);
+          rows.push(row);
+          row = [];
+          current = '';
+        } else if (char === '\r') {
+          if (text[index + 1] === '\n') continue;
+          row.push(current);
+          rows.push(row);
+          row = [];
+          current = '';
         } else {
-          if (c === '"') inQ = true;
-          else if (c === delim) { cells.push(cur); cur = ''; }
-          else cur += c;
+          current += char;
         }
       }
-      cells.push(cur);
-      return cells;
+
+      row.push(current);
+      rows.push(row);
+      while (rows.length && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') rows.pop();
+      return rows;
     }
 
-    function detect(v) {
-      const t = v.trim();
-      if (!t) return null;
-      if (t.startsWith('[') || t.startsWith('{')) {
-        try { const j = JSON.parse(t); if (Array.isArray(j)) return { type: 'json', rows: jsonToRows(j) }; } catch (e) {}
+    function detect(value) {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) return { type: 'json', rows: jsonToRows(parsed) };
+        } catch (error) {}
       }
-      if (/^\|.*\|/.test(t.split('\n')[0])) {
-        const rows = t.split('\n').map(l => l.trim()).filter(l => l.startsWith('|'))
-          .filter(l => !/^\|[\s:|-]+\|?$/.test(l))
-          .map(l => l.replace(/^\||\|$/g, '').split('|').map(c => c.trim()));
+      if (/^\|.*\|/.test(trimmed.split('\n')[0])) {
+        const rows = trimmed.split('\n').map(line => line.trim()).filter(line => line.startsWith('|'))
+          .filter(line => !/^\|[\s:|-]+\|?$/.test(line))
+          .map(line => line.replace(/^\||\|$/g, '').split('|').map(cell => cell.trim()));
         if (rows.length) return { type: 'md', rows };
       }
-      const first = t.split('\n')[0];
-      if (first.includes('\t')) return { type: 'tsv', rows: t.split('\n').filter(Boolean).map(l => l.split('\t')) };
-      return { type: 'csv', rows: t.split('\n').filter(Boolean).map(l => parseCsvLine(l, ',')) };
+      const firstLine = trimmed.split(/\r?\n/)[0];
+      if (firstLine.includes('\t')) return { type: 'tsv', rows: parseDelimited(trimmed, '\t') };
+      return { type: 'csv', rows: parseDelimited(trimmed, ',') };
     }
 
     function jsonToRows(arr) {

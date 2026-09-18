@@ -10,8 +10,9 @@ DK.registerTool({
     body.appendChild(h('div', { class: 'tip', html:
       '<b>离线词典</b>：共 <b>' + st.total.toLocaleString() + '</b> 个中文词条（团队精编 ' + st.curated + ' + 扩充词典）' +
       (st.pinyin ? '、拼音表 ' + st.pinyin + ' 字' : '') + '，内网断网可用。<br>' +
-      '<b>词典翻译</b>=逐词直译（术语准）；<b>神经翻译</b>=本地 AI 模型整句翻译（语句更自然，<b>中英双向</b>：中→英用 opus-mt-zh-en、英→中用 opus-mt-en-zh，自动判定方向，首次加载模型约 10-30 秒）。' +
-      '未收录词可到「设置 → 自定义词库」补充。' }));
+      '<b>智能翻译</b>=短词和术语走词典，整句自动走本地神经模型，并优先保护代码标识符、变量名和自定义术语；' +
+      '<b>词典翻译</b>=逐词直译，可快速查看命中词条。本地神经模型为中英双向，' +
+      '首次加载约 10-30 秒。未收录词可到「设置 → 自定义词库」补充。' }));
 
     const input = h('textarea', { class: 'ta', placeholder: '输入中文或英文…（支持整段粘贴）' });
     const dirLabel = h('span', { class: 'muted', text: '自动检测' });
@@ -209,18 +210,47 @@ DK.registerTool({
         dirLabel.textContent = (dir === 'en2zh' ? '英 → 中' : '中 → 英') + ' · 神经整句';
         lastResult = { dir, text: trans };
         noteBox.innerHTML = '';
+        const protectedCount = (DKNeural._test && DKNeural._test.collectCodeMatches(text).length) || 0;
         noteBox.appendChild(h('div', { class: 'tip', html:
-          '本地神经模型 ' + model + '，完全离线，不出浏览器。' }));
+          '本地神经模型 ' + model + '，完全离线，不出浏览器。' +
+          (protectedCount ? ' 已保护 <b>' + protectedCount + '</b> 个代码/标识符片段。' : '') }));
         termsBox.innerHTML = '';
+        return true;
       } catch (e) {
         if (isMissingAssetsErr(e)) showMissingAssets(missingFromErr(e));
         else DK.toast('神经翻译失败：' + (e && e.message), 'err');
+        return false;
       } finally { btn.textContent = '神经翻译'; btn.disabled = false; }
+    }
+
+    function isShortDictionaryInput(text) {
+      const value = (text || '').trim();
+      if (!value || /[。！？!?；;\n]/.test(value)) return false;
+      const cjkCount = (value.match(/[\u3400-\u4dbf\u4e00-\u9fff]/g) || []).length;
+      if (cjkCount && cjkCount <= 12 && !/[A-Za-z_]/.test(value)) return true;
+      if (/^[A-Za-z][A-Za-z\s'-]{0,30}$/.test(value) && value.split(/\s+/).length <= 2) return true;
+      return false;
+    }
+
+    async function smartTranslate() {
+      const text = input.value.trim();
+      if (!text) { DK.toast('请先输入要翻译的内容', 'err'); return; }
+      if (isShortDictionaryInput(text)) {
+        render();
+        DK.toast('短术语已使用词典翻译');
+        return;
+      }
+      const ok = await neuralTranslate();
+      if (!ok) {
+        render();
+        noteBox.appendChild(h('div', { class: 'tip warn', text: '神经翻译不可用，已回退到词典翻译；该结果仅供快速参考。' }));
+      }
     }
 
     let apiBtn, neuralBtn, neuralStatus;
     const row1 = h('div', { class: 'row' }, [
-      h('button', { class: 'btn primary', text: '翻译', onclick: render }),
+      h('button', { class: 'btn primary', text: '智能翻译', onclick: smartTranslate }),
+      h('button', { class: 'btn', text: '词典翻译', onclick: render }),
       h('button', { class: 'btn', text: '中→英', onclick: e => { forceDir = 'zh2en'; render(); } }),
       h('button', { class: 'btn', text: '英→中', onclick: () => { forceDir = 'en2zh'; render(); } }),
       h('button', { class: 'btn', text: '自动', onclick: () => { forceDir = null; render(); } }),

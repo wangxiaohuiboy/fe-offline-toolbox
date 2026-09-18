@@ -8,7 +8,7 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 
 | Tool | Description |
 |------|-------------|
-| **Translate** | Dual-engine, fully offline: **① Dictionary lookup** — 77,000 Chinese-English entries (1,270+ hand-curated + extended dictionary from [ECDICT](https://github.com/skywind3000/ECDICT)), accurate terms, instant; **② Neural translation** — built-in local AI model opus-mt-zh-en ([Transformers.js](https://github.com/huggingface/transformers.js) + WASM, ~110MB), natural full-sentence output; first load takes 10-30s. Bidirectional; optional intranet translation API support |
+| **Translate** | Smart routing with two fully offline engines: short terms use the dictionary, full sentences use the local neural model; long text is chunked and code tags, identifiers, fields, URLs and custom glossary terms are protected and restored. Bidirectional Chinese-English translation, with optional intranet API support |
 | **Selection Translate** | Select text on any webpage → click the floating "译" button → offline dictionary card |
 | **Chinese → Variable Names** | Chinese phrases → camelCase / PascalCase / snake_case / kebab-case / CONSTANT, plus engineering suggestions (Vue/React component names, `is/on/get/set` prefixes, status/list/fetch patterns); batch mode; pinyin fallback (all 6,763 GB2312 characters included) |
 | **JSON Tools** | Format (with line/column error location), minify, key sorting, escaping, JSON→TypeScript interfaces, JSON→YAML, JSONPath extraction, syntax highlighting |
@@ -27,6 +27,10 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 | **Cheat Sheet** | CSS tips / Git / npm / HTTP status codes / keyCodes |
 | **Settings** | Team custom dictionary (shared by translate & naming, import/export), intranet translation API config, selection-translate toggle, config backup |
 
+## 📌 Recent updates
+
+- **v1.7.0** Smart translation routing, long-text chunking, code/identifier protection, custom glossary integration and stable frontend terminology
+
 ## 📥 Installation (no internet required)
 
 1. Download / unzip this repo (or `fe-offline-kit.zip`)
@@ -40,10 +44,11 @@ A Chrome extension built for **intranet / offline environments**, providing 17 h
 
 ## 🌐 About Offline Translation
 
-The Translate tool ships with **two offline engines**:
+The Translate tool provides **Smart Translate** and **Dictionary Translate**:
 
-- **Dictionary mode** (default): word-by-word lookup against local dictionaries — accurate terms, instant response. Structural particles (的/了/把…) are automatically omitted. Maintain business terms in Settings → Custom Dictionary; instantly affects both translation and naming
-- **Neural mode (both directions)**: local AI models (opus-mt series, Marian NMT) run entirely in your browser via [Transformers.js](https://github.com/huggingface/transformers.js) + WebAssembly — real full-sentence translation with natural grammar. Chinese→English uses `opus-mt-zh-en`, English→Chinese uses `opus-mt-en-zh`; the direction is auto-detected from whether the input contains Chinese (no manual switch). Both model files (~220MB total) ship with the zip distribution and never touch the network. First load takes 10-30s; per-sentence inference ~2-10s
+- **Smart Translate** (recommended): short terms use the dictionary and full sentences use the local neural model. Long text is split into safe chunks; code tags, identifiers, fields, URLs and custom glossary terms are protected and restored
+- **Dictionary Translate**: word-by-word lookup for fast terminology reference. Structural particles (的/了/把…) are automatically omitted
+- **Neural engine (both directions)**: local opus-mt models (Marian NMT) run entirely in your browser via [Transformers.js](https://github.com/huggingface/transformers.js) + WebAssembly. Chinese→English uses `opus-mt-zh-en`, English→Chinese uses `opus-mt-en-zh`; direction is auto-detected. Both model files (~220MB total) ship with the zip distribution and never touch the network. First load takes about 10-30s
   - Example: `仓库的代码已经超过一万行了，需要安排一次代码评审。` → *The warehouse code has exceeded 10,000 lines and requires a code review.*
   - When cloning from GitHub, model weights are excluded (size); run `bash tools/download_models.sh` to fetch them (defaults to the hf-mirror.com mirror for China)
 - **Intranet translation API**: if your company runs a translation service, configure the endpoint (GET/POST, param name, response path, headers) in Settings

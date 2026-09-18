@@ -8,13 +8,13 @@ const OFFSCREEN_URL = chrome.runtime.getURL('offscreen/translate.html');
 /* ---------- Offscreen Document：常驻加载神经翻译模型（避免面板关闭中断）---------- */
 async function ensureOffscreen() {
   try {
-    if (chrome.offscreen && await chrome.offscreen.hasDocument({ url: OFFSCREEN_URL })) return true;
+    if (chrome.offscreen && await chrome.offscreen.hasDocument({ documentUrl: OFFSCREEN_URL })) return true;
   } catch (e) { /* 旧版无 offscreen API */ }
   try {
     if (chrome.offscreen && chrome.offscreen.createDocument) {
       await chrome.offscreen.createDocument({
         url: OFFSCREEN_URL,
-        reasons: ['BLOBS'],
+        reasons: ['WORKERS'],
         justification: '本地神经翻译模型需在扩展页面常驻加载，避免面板弹窗关闭导致加载/推理中断'
       });
       // 等待 offscreen 文档脚本注册消息监听，避免首条请求竞态丢失

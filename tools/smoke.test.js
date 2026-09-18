@@ -4,6 +4,7 @@ require('../js/lib/pinyin.data.js');
 require('../js/lib/dict.data.js');
 require('../js/lib/dict.big.js');
 require('../js/lib/translate-core.js');
+require('../js/lib/neural.js');
 require('../js/lib/naming.js');
 require('../js/lib/core.js');
 
@@ -57,6 +58,40 @@ t('英→中 短语: shopping cart', () => {
   assert.ok(r.text.includes('购物车'), r.text);
 });
 t('英→中 扩充词: apple', () => assert.ok(/苹果/.test(DKTranslate.translate('apple').text)));
+
+console.log('== 神经翻译增强 ==');
+t('长文本分片不丢内容', () => {
+  const input = '第一句。第二句。第三句。第四句。第五句。第六句。第七句。第八句。第九句。第十句。第十一句。第十二句。第十三句。第十四句。第十五句。';
+  const chunks = DKNeural._test.buildChunks(input, 20);
+  assert.ok(chunks.length > 1, '应拆分多个片段');
+  assert.strictEqual(chunks.join(''), input);
+});
+t('代码标识符可被识别保护', () => {
+  const values = DKNeural._test.collectCodeMatches('请保持 <Button disabled={loading}> 与 orderStatus、EmptyState 一致。').map(item => item.target);
+  assert.ok(values.includes('<Button disabled={loading}>'), values.join(','));
+  assert.ok(values.includes('orderStatus'), values.join(','));
+  assert.ok(values.includes('EmptyState'), values.join(','));
+});
+t('自定义术语参与神经翻译术语表', () => {
+  DKTranslate.setCustomDict('代码仓库=code repository');
+  const matches = DKNeural._test.collectTermMatches('代码仓库需要代码评审。', 'zh2en');
+  const values = matches.map(item => item.target);
+  assert.ok(values.includes('code repository'), values.join(','));
+  assert.ok(values.includes('code review'), values.join(','));
+});
+t('自定义词条可导出给神经引擎', () => {
+  DKTranslate.setCustomDict('代码仓库=code repository\n订单状态=order status');
+  const entries = DKTranslate.getCustomEntries();
+  assert.ok(entries.some(item => item.zh === '代码仓库' && item.en === 'code repository'), JSON.stringify(entries));
+});
+t('术语和代码片段不会重叠选择', () => {
+  const matches = DKNeural._test.selectNonOverlapping([
+    { start: 0, end: 10, target: 'a', kind: 'code' },
+    { start: 2, end: 5, target: 'b', kind: 'term' },
+    { start: 10, end: 12, target: 'c', kind: 'term' }
+  ]);
+  assert.deepStrictEqual(matches.map(item => item.target), ['a', 'c']);
+});
 
 console.log('== 口语与礼貌用语 ==');
 t('很高兴见到你 → nice to meet you', () => {

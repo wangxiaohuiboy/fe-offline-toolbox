@@ -35,9 +35,8 @@ DK.registerTool({
       urld: () => { try { show(decodeURIComponent(input.value.trim())); } catch (e) { DK.toast('URL 解码失败', 'err'); } },
       htmle: () => show(input.value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))),
       htmld: () => {
-        const d = document.createElement('div');
-        d.innerHTML = input.value;
-        show(d.textContent);
+        const parsed = new DOMParser().parseFromString(input.value, 'text/html');
+        show(parsed.documentElement.textContent || '');
       },
       unie: () => show(input.value.split('').map(c => {
         const code = c.codePointAt(0).toString(16);

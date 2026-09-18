@@ -62,8 +62,14 @@ DK.registerTool({
         if (/^\*\/(\d+)$/.test(f)) return '每 ' + f.split('/')[1] + ' ' + unit;
         const setDesc = f.replace(/\//g, ' 间隔 ').replace(/-/g, ' 到 ').replace(/,/g, '、');
         if (names) {
-          const vals = f.split(/[,-]/).map(v => /^\d+$/.test(v) ? (names[(+v) % 7 === 0 && +v === 7 ? 0 : +v] || v) : v).join('、');
-          return '在 ' + vals;
+          const describeName = value => names[(+value) % 7 === 0 && +value === 7 ? 0 : (+value) % 7] || value;
+          const described = f.split(',').map(part => {
+            const range = /^(\d+)-(\d+)$/.exec(part);
+            if (range) return describeName(range[1]) + '至' + describeName(range[2]);
+            if (/^\d+$/.test(part)) return describeName(part);
+            return part;
+          }).join('、');
+          return '在 ' + described;
         }
         return '在 ' + setDesc + ' ' + unit;
       }

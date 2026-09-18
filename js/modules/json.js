@@ -58,8 +58,13 @@
     if (v === null) return 'null';
     if (typeof v !== 'object') {
       if (typeof v === 'string') {
-        return /^[\w\-./:, +\u4e00-\u9fa5#()*?[\]@]+$/.test(v) && !/^[\s]|[\s]$/.test(v) && v.trim() && !/^(true|false|null|\d+(\.\d+)?)$/i.test(v)
-          ? v : JSON.stringify(v);
+        const plainSafe = v.trim()
+          && !/^(true|false|null|~|[-+]?\d+(?:\.\d+)?)$/i.test(v)
+          && !/[:#\[\]{},&*!|>'"%@`]/.test(v)
+          && !/^[-?:]\s/.test(v)
+          && !/\s{2,}/.test(v)
+          && /^[\w\u4e00-\u9fa5][\w\u4e00-\u9fa5 ./()\-]*$/.test(v);
+        return plainSafe ? v : JSON.stringify(v);
       }
       return String(v);
     }

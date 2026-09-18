@@ -59,17 +59,13 @@ DK.registerTool({
       send.disabled = true; send.textContent = '请求中…';
       const t0 = performance.now();
       try {
-        let resp;
-        try { resp = await doRequest(u); }
-        catch (e) {
-          // 可能是跨域权限未授权 → 申请该内网域名权限后重试一次
-          const origin = new URL(u).origin + '/*';
-          const granted = await new Promise(r => {
-            try { chrome.permissions.request({ origins: [origin] }, r); } catch (err) { r(false); }
-          });
-          if (granted) resp = await doRequest(u);
-          else throw e;
-        }
+        const origin = new URL(u).origin + '/*';
+        const granted = await new Promise(resolve => {
+          try { chrome.permissions.request({ origins: [origin] }, resolve); } catch (error) { resolve(false); }
+        });
+        if (!granted) throw new Error('未获得该内网地址的访问权限，请在扩展权限中重新授权');
+
+        const resp = await doRequest(u);
         const ms = Math.round(performance.now() - t0);
         const text = await resp.text();
         let pretty = text;

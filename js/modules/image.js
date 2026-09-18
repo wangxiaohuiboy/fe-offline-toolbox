@@ -91,9 +91,11 @@ DK.registerTool({
       const bytes = Math.round((uri.length - uri.indexOf(',') - 1) * 3 / 4);
       meta.innerHTML += '<br>输出：' + tw + '×' + th + ' · ' + fmt(bytes) +
         '（Base64 后为源文件 ' + Math.round(bytes / cur.size * 100) + '%）';
-      lastCss = '/* CSS */\nbackground-image: url(' + uri.slice(0, 60) + '...);\n\n/* HTML */\n<img src="' + uri.slice(0, 60) + '..." alt="">';
-      cssOut.pre.textContent = '完整 CSS/HTML 已含在 Base64 输出中，直接复制替换即可。';
-      cssOut.pre.style.color = 'var(--text2)';
+      lastCss = '/* CSS */\nbackground-image: url(' + uri + ');\n\n/* HTML */\n<img src="' + uri + '" alt="">';
+      cssOut.pre.textContent = lastCss;
+      cssOut.pre.style.maxHeight = '140px';
+      cssOut.pre.style.whiteSpace = 'pre-wrap';
+      cssOut.pre.style.wordBreak = 'break-all';
     }
 
     body.appendChild(drop);
